@@ -15,7 +15,7 @@ from app.interfaces.errors.exception_handlers import register_exception_handlers
 from core.config import get_settings
 from contextlib import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
-from app.infrastructure.storage.redis import get_redis_client
+from app.infrastructure.storage import get_redis_client, get_postgres
 
 
 
@@ -35,13 +35,18 @@ openapi_tags = [
 async def lifespan(app: FastAPI):
     """生命周期上下文管理"""
     logger.info(f"Starting app in {settings.env} mode")
+    # 初始化Redis
     redis = get_redis_client()
     await redis.init()
+
+    # 初始化Postgres
+    postgres = get_postgres()
+    await postgres.init()
     try:
-        # 分界
         yield
     finally:
         await redis.close()
+        await postgres.close()
         logger.info("Shutting down app")
 app = FastAPI(
     title="灵析通用智能体",
