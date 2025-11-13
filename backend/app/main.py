@@ -11,6 +11,7 @@ from fastapi import FastAPI
 
 from app.infrastructure.logging import setup_logging
 from app.interfaces.endpoints.routes import router
+from app.interfaces.errors.exception_handlers import register_exception_handlers
 from core.config import get_settings
 from contextlib import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
@@ -47,6 +48,7 @@ app = FastAPI(
     version="0.1.0",
 )
 
+# 跨域处理
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -54,6 +56,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# 异常处理
+register_exception_handlers(app=app)
 
 # 路由集成
 app.include_router(router=router, prefix="/api")
