@@ -10,13 +10,51 @@ import logging
 from fastapi import FastAPI
 
 from app.infrastructure.logging import setup_logging
+from app.interfaces.endpoints.routes import router
 from core.config import get_settings
+from contextlib import asynccontextmanager
+from fastapi.middleware.cors import CORSMiddleware
+
+
+
 
 settings = get_settings()
 
 setup_logging()
 logger = logging.getLogger()
 
-app = FastAPI()
+openapi_tags = [
+    {
+        "name": "状态模块",
+        "description": "包含 **状态监测** 等API接口，用于监测系统的运行状态。"
+    }
+]
 
-logger.info(f"Starting app in {settings.env} mode")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """生命周期上下文管理"""
+    logger.info(f"Starting app in {settings.env} mode")
+    try:
+        # 分界
+        yield
+    finally:
+        logger.info("Shutting down app")
+app = FastAPI(
+    title="灵析通用智能体",
+    description="灵析是一个通用的AI Agent系统,可以完全私有化部署,使用A2A+MCP连接Agent/Tool。",
+    lifespan=lifespan,
+    openapi_tags=openapi_tags,
+    version="0.1.0",
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# 路由集成
+app.include_router(router=router, prefix="/api")
+
