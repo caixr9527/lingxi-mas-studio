@@ -5,3 +5,5 @@
 @Author : caixiaorong01@outlook.com
 @File   : __init__.py.py
 """
+from .logging import setup_logging
+__all__ = ["setup_logging"]
