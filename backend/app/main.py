@@ -15,9 +15,7 @@ from app.interfaces.errors.exception_handlers import register_exception_handlers
 from core.config import get_settings
 from contextlib import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
-from app.infrastructure.storage import get_redis_client, get_postgres
-
-
+from app.infrastructure.storage import get_redis_client, get_postgres, get_cos
 
 settings = get_settings()
 
@@ -31,23 +29,25 @@ openapi_tags = [
     }
 ]
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """生命周期上下文管理"""
     logger.info(f"Starting app in {settings.env} mode")
-    # 初始化Redis
-    redis = get_redis_client()
-    await redis.init()
+    # 初始化数据库连接
+    await get_redis_client().init()
+    await get_postgres().init()
+    await get_cos().init()
 
-    # 初始化Postgres
-    postgres = get_postgres()
-    await postgres.init()
     try:
         yield
     finally:
-        await redis.close()
-        await postgres.close()
+        await get_redis_client().close()
+        await get_postgres().close()
+        await get_cos().close()
         logger.info("Shutting down app")
+
+
 app = FastAPI(
     title="灵析通用智能体",
     description="灵析是一个通用的AI Agent系统,可以完全私有化部署,使用A2A+MCP连接Agent/Tool。",
@@ -70,4 +70,3 @@ register_exception_handlers(app=app)
 
 # 路由集成
 app.include_router(router=router, prefix="/api")
-

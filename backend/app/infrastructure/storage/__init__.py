@@ -7,8 +7,10 @@
 """
 from .redis import get_redis_client
 from .postgres import get_postgres
+from .cos import get_cos
 
 __all__ = [
     "get_redis_client",
     "get_postgres",
+    "get_cos",
 ]
