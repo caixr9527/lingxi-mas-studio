@@ -48,7 +48,7 @@ class RedisClient:
             logger.warning("Redis客户端未初始化")
             return
         try:
-            await self._client.close()
+            await self._client.aclose()
             self._client = None
             get_redis_client.cache_clear()
             logger.info("关闭Redis客户端成功")
