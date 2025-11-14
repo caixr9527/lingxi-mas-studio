@@ -5,3 +5,6 @@
 @Author : caixiaorong01@outlook.com
 @File   : __init__.py.py
 """
+from .base import Base
+
+__all__ = ["Base"]
