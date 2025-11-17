@@ -5,9 +5,9 @@
 @Author : caixiaorong01@outlook.com
 @File   : __init__.py.py
 """
-from .redis import get_redis_client
-from .postgres import get_postgres
 from .cos import get_cos
+from .postgres import get_postgres
+from .redis import get_redis_client
 
 __all__ = [
     "get_redis_client",

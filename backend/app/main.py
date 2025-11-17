@@ -6,16 +6,16 @@
 @File   : main.py
 """
 import logging
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.infrastructure.logging import setup_logging
+from app.infrastructure.storage import get_redis_client, get_postgres, get_cos
 from app.interfaces.endpoints.routes import router
 from app.interfaces.errors.exception_handlers import register_exception_handlers
 from core.config import get_settings
-from contextlib import asynccontextmanager
-from fastapi.middleware.cors import CORSMiddleware
-from app.infrastructure.storage import get_redis_client, get_postgres, get_cos
 
 settings = get_settings()
 

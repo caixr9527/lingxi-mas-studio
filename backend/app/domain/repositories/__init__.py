@@ -5,3 +5,8 @@
 @Author : caixiaorong01@outlook.com
 @File   : __init__.py.py
 """
+from .app_config_repository import AppConfigRepository
+
+__all__ = [
+    "AppConfigRepository",
+]

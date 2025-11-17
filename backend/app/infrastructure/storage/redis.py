@@ -7,6 +7,7 @@
 """
 import logging
 from functools import lru_cache
+
 from redis.asyncio import Redis
 
 from core.config import Settings, get_settings

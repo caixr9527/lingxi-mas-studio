@@ -6,15 +6,17 @@
 @File   : routes.py
 """
 from fastapi import APIRouter
-from app.interfaces.endpoints import status_routes
+
+from app.interfaces.endpoints import status_routes, app_config_routes
 
 
 def create_api_route() -> APIRouter:
     """路由管理"""
-    router = APIRouter()
+    api_router = APIRouter()
 
-    router.include_router(status_routes.router)
-    return router
+    api_router.include_router(status_routes.router)
+    api_router.include_router(app_config_routes.router)
+    return api_router
 
 
 router = create_api_route()

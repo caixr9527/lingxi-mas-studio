@@ -5,15 +5,17 @@
 @Author : caixiaorong01@outlook.com
 @File   : config.py
 """
-from pydantic_settings import BaseSettings, SettingsConfigDict
 from functools import lru_cache
+
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
     env: str = "development"
     log_level: str = "INFO"
+    app_config_filepath: str = "config.yaml"
 
-    sqlalchemy_database_uri: str = "postgresql://postgres:postgres@127.0.0.1:5432/lingxi-mas"
+    sqlalchemy_database_uri: str = "postgresql+asyncpg://postgres:postgres@127.0.0.1:5432/lingxi-mas"
 
     redis_host: str = "localhost"
     redis_port: int = 6379

@@ -9,6 +9,7 @@ dependencies = [
     "asyncpg>=0.30.0",
     "cos-python-sdk-v5>=1.9.38",
     "fastapi>=0.121.1",
+    "filelock>=3.20.0",
     "greenlet>=3.2.4",
     "openai>=2.7.2",
     "psycopg2-binary>=2.9.11",

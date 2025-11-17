@@ -5,3 +5,8 @@
 @Author : caixiaorong01@outlook.com
 @File   : __init__.py.py
 """
+from .app_config_service import AppConfigService
+
+__all__ = [
+    "AppConfigService",
+]
