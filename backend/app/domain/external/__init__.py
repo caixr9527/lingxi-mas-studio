@@ -7,5 +7,13 @@
 """
 from .llm import LLM
 from .health_checker import HealthChecker
+from .task import Task, TaskRunner
+from .message_queue import MessageQueue
 
-__all__ = ["LLM", "HealthChecker"]
+__all__ = [
+    "LLM",
+    "HealthChecker",
+    "Task",
+    "TaskRunner",
+    "MessageQueue"
+]
