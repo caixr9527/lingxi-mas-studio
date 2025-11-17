@@ -6,7 +6,9 @@
 @File   : __init__.py.py
 """
 from .app_config_service import AppConfigService
+from .status_service import StatusService
 
 __all__ = [
     "AppConfigService",
+    "StatusService"
 ]

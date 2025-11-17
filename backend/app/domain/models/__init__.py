@@ -6,8 +6,10 @@
 @File   : __init__.py.py
 """
 from .app_config import AppConfig, LLMConfig
+from .health_status import HealthStatus
 
 __all__ = [
     "AppConfig",
     "LLMConfig",
+    "HealthStatus",
 ]

@@ -6,5 +6,6 @@
 @File   : __init__.py.py
 """
 from .llm import LLM
+from .health_checker import HealthChecker
 
-__all__ = ["LLM"]
+__all__ = ["LLM", "HealthChecker"]
