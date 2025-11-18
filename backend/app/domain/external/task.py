@@ -32,11 +32,11 @@ class TaskRunner(ABC):
 class Task(Protocol):
     """任务抽象类"""
 
-    async def run(self) -> None:
+    async def invoke(self) -> None:
         """任务执行方法"""
         ...
 
-    async def cancel(self) -> None:
+    def cancel(self) -> bool:
         """任务取消方法"""
         ...
 
@@ -71,6 +71,6 @@ class Task(Protocol):
         ...
 
     @classmethod
-    def destroy(cls) -> None:
+    async def destroy(cls) -> None:
         """销毁任务"""
         ...
