@@ -7,7 +7,7 @@
 """
 from abc import ABC, abstractmethod
 from typing import Protocol, Optional
-from app.domain.external import MessageQueue
+from app.domain.external.message_queue import MessageQueue
 
 
 class TaskRunner(ABC):
