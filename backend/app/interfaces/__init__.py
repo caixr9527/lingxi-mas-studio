@@ -5,3 +5,8 @@
 @Author : caixiaorong01@outlook.com
 @File   : __init__.py.py
 """
+from .service_dependencies import get_app_config_service
+
+__all__ = [
+    "get_app_config_service"
+]

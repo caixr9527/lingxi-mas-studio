@@ -1,0 +1,22 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+"""
+@Time   : 2025/11/13 15:00
+@Author : caixiaorong01@outlook.com
+@File   : routes.py
+"""
+from fastapi import APIRouter
+
+from app.interfaces.endpoints import status_routes, app_config_routes
+
+
+def create_api_route() -> APIRouter:
+    """路由管理"""
+    api_router = APIRouter()
+
+    api_router.include_router(status_routes.router)
+    api_router.include_router(app_config_routes.router)
+    return api_router
+
+
+router = create_api_route()

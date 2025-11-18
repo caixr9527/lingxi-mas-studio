@@ -1,0 +1,42 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+"""
+@Time   : 2025/11/17 10:45
+@Author : caixiaorong01@outlook.com
+@File   : service_dependencies.py
+"""
+import logging
+from functools import lru_cache
+
+from fastapi import Depends
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.application.service import AppConfigService
+from app.application.service import StatusService
+from app.infrastructure.external.health_checker import PostgresHealthChecker, RedisHealthChecker
+from app.infrastructure.repositories import FileAppConfigRepository
+from app.infrastructure.storage import get_db_session, RedisClient, get_redis_client
+from core.config import get_settings
+
+logger = logging.getLogger(__name__)
+
+settings = get_settings()
+
+
+@lru_cache()
+def get_app_config_service() -> AppConfigService:
+    """获取应用配置服务"""
+    logger.info("加载获取AppConfigService")
+    return AppConfigService(app_config_repository=FileAppConfigRepository(settings.app_config_filepath))
+
+
+@lru_cache()
+def get_status_service(
+        db_session: AsyncSession = Depends(get_db_session),
+        redis_client: RedisClient = Depends(get_redis_client)
+) -> StatusService:
+    """获取应用状态服务"""
+    logger.info("加载获取StatusService")
+    postgres_checker = PostgresHealthChecker(db_session=db_session)
+    redis_checker = RedisHealthChecker(redis_client=redis_client)
+    return StatusService(checkers=[postgres_checker, redis_checker])
