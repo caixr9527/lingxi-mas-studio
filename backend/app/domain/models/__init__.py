@@ -10,7 +10,7 @@ from .health_status import HealthStatus
 from .memory import Memory
 from .plan import Plan, Step, ExecutionStatus
 from .event import PlanEvent, TitleEvent, StepEvent, MessageEvent, ToolEvent, WaiteEvent, ErrorEvent, DoneEvent, Event
-
+from .tool_result import ToolResult
 __all__ = [
     "AppConfig",
     "LLMConfig",
@@ -28,4 +28,5 @@ __all__ = [
     "ErrorEvent",
     "DoneEvent",
     "Event",
+    "ToolResult"
 ]
