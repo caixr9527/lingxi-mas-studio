@@ -7,9 +7,15 @@
 """
 from .app_config import AppConfig, LLMConfig
 from .health_status import HealthStatus
+from .memory import Memory
+from .plan import Plan, Step, ExecutionStatus
 
 __all__ = [
     "AppConfig",
     "LLMConfig",
     "HealthStatus",
+    "Memory",
+    "Plan",
+    "Step",
+    "ExecutionStatus"
 ]
