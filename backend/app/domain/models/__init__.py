@@ -9,6 +9,7 @@ from .app_config import AppConfig, LLMConfig
 from .health_status import HealthStatus
 from .memory import Memory
 from .plan import Plan, Step, ExecutionStatus
+from .event import PlanEvent, TitleEvent, StepEvent, MessageEvent, ToolEvent, WaiteEvent, ErrorEvent, DoneEvent, Event
 
 __all__ = [
     "AppConfig",
@@ -17,5 +18,14 @@ __all__ = [
     "Memory",
     "Plan",
     "Step",
-    "ExecutionStatus"
+    "ExecutionStatus",
+    "PlanEvent",
+    "TitleEvent",
+    "StepEvent",
+    "MessageEvent",
+    "ToolEvent",
+    "WaiteEvent",
+    "ErrorEvent",
+    "DoneEvent",
+    "Event",
 ]
