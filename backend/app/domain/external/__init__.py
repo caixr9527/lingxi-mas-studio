@@ -9,11 +9,13 @@ from .llm import LLM
 from .health_checker import HealthChecker
 from .task import Task, TaskRunner
 from .message_queue import MessageQueue
+from .json_parser import JSONParser
 
 __all__ = [
     "LLM",
     "HealthChecker",
     "Task",
     "TaskRunner",
-    "MessageQueue"
+    "MessageQueue",
+    "JSONParser",
 ]

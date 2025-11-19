@@ -83,6 +83,7 @@ dependencies = [
     { name = "fastapi" },
     { name = "filelock" },
     { name = "greenlet" },
+    { name = "json-repair" },
     { name = "openai" },
     { name = "psycopg2-binary" },
     { name = "pydantic" },
@@ -106,6 +107,7 @@ requires-dist = [
     { name = "fastapi", specifier = ">=0.121.1" },
     { name = "filelock", specifier = ">=3.20.0" },
     { name = "greenlet", specifier = ">=3.2.4" },
+    { name = "json-repair", specifier = ">=0.54" },
     { name = "openai", specifier = ">=2.7.2" },
     { name = "psycopg2-binary", specifier = ">=2.9.11" },
     { name = "pydantic", specifier = ">=2.12.4" },
@@ -452,6 +454,15 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/85/15/d6eb3b770f6a0d332675141ab3962fd4a7c270ede3515d9f3583e1d28276/jiter-0.12.0-graalpy312-graalpy250_312_native-macosx_11_0_arm64.whl", hash = "sha256:89163163c0934854a668ed783a2546a0617f71706a2551a4a0666d91ab365d6b", size = 304233, upload-time = "2025-11-09T20:49:18.734Z" },
     { url = "https://files.pythonhosted.org/packages/8c/3e/e7e06743294eea2cf02ced6aa0ff2ad237367394e37a0e2b4a1108c67a36/jiter-0.12.0-graalpy312-graalpy250_312_native-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:d96b264ab7d34bbb2312dedc47ce07cd53f06835eacbc16dde3761f47c3a9e7f", size = 338537, upload-time = "2025-11-09T20:49:20.317Z" },
     { url = "https://files.pythonhosted.org/packages/2f/9c/6753e6522b8d0ef07d3a3d239426669e984fb0eba15a315cdbc1253904e4/jiter-0.12.0-graalpy312-graalpy250_312_native-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:c24e864cb30ab82311c6425655b0cdab0a98c5d973b065c66a3f020740c2324c", size = 346110, upload-time = "2025-11-09T20:49:21.817Z" },
+]
+
+[[package]]
+name = "json-repair"
+version = "0.54"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/b1/51/b70cce3907ccf091f21d2b7d73f61f5ee3eda39b4dfe7d833c6d96a7b853/json_repair-0.54.tar.gz", hash = "sha256:8ba612a54ff7171cc0529ad050843d4f72fe3b93a1571b9c8637a64fa3acf5f1", size = 38455, upload-time = "2025-11-18T14:21:49.301Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/7a/3c/80c4dfaa14bb7668d2a699906fbd8584d40ebe460a6104df12da1f5621b2/json_repair-0.54-py3-none-any.whl", hash = "sha256:e0a988eb08000fc460b6061acaf3b7aa6e1170eae3de9ea246a89ec21cbc4f8d", size = 29273, upload-time = "2025-11-18T14:21:47.833Z" },
 ]
 
 [[package]]
