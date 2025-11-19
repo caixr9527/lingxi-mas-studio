@@ -5,15 +5,18 @@
 @Author : caixiaorong01@outlook.com
 @File   : __init__.py.py
 """
-from .app_config import AppConfig, LLMConfig
+from .app_config import AppConfig, LLMConfig, AgentConfig
 from .health_status import HealthStatus
 from .memory import Memory
 from .plan import Plan, Step, ExecutionStatus
 from .event import PlanEvent, TitleEvent, StepEvent, MessageEvent, ToolEvent, WaiteEvent, ErrorEvent, DoneEvent, Event
 from .tool_result import ToolResult
+from .file import File
+
 __all__ = [
     "AppConfig",
     "LLMConfig",
+    "AgentConfig",
     "HealthStatus",
     "Memory",
     "Plan",
@@ -28,5 +31,6 @@ __all__ = [
     "ErrorEvent",
     "DoneEvent",
     "Event",
-    "ToolResult"
+    "ToolResult",
+    "File"
 ]
