@@ -9,9 +9,21 @@ from .app_config import AppConfig, LLMConfig, AgentConfig
 from .health_status import HealthStatus
 from .memory import Memory
 from .plan import Plan, Step, ExecutionStatus
-from .event import PlanEvent, TitleEvent, StepEvent, MessageEvent, ToolEvent, WaiteEvent, ErrorEvent, DoneEvent, Event
+from .event import (
+    PlanEvent,
+    TitleEvent,
+    StepEvent,
+    MessageEvent,
+    ToolEvent,
+    WaiteEvent,
+    ErrorEvent,
+    DoneEvent,
+    Event,
+    ToolEventStatus,
+)
 from .tool_result import ToolResult
 from .file import File
+from .message import Message
 
 __all__ = [
     "AppConfig",
@@ -31,6 +43,8 @@ __all__ = [
     "ErrorEvent",
     "DoneEvent",
     "Event",
+    "ToolEventStatus",
     "ToolResult",
-    "File"
+    "File",
+    "Message",
 ]

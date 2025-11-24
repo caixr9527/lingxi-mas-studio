@@ -13,15 +13,17 @@ from app.domain.external import LLM
 from app.domain.models import LLMConfig
 from openai import AsyncOpenAI
 
-
 logger = logging.getLogger(__name__)
+
+
 class OpenAILLM(LLM):
     """OpenAI语言模型"""
 
-    def __init__(self, llm_config: LLMConfig) -> None:
+    def __init__(self, llm_config: LLMConfig, **kwargs) -> None:
         self._client = AsyncOpenAI(
             base_url=str(llm_config.base_url),
             api_key=llm_config.api_key,
+            **kwargs,
         )
         self._model_name = llm_config.model_name
         self._temperature = llm_config.temperature
@@ -84,7 +86,7 @@ class OpenAILLM(LLM):
 
 
 if __name__ == "__main__":
-    async  def main():
+    async def main():
         llm = OpenAILLM(llm_config=LLMConfig(
             base_url="https://api.deepseek.com",
             api_key="",
@@ -94,5 +96,8 @@ if __name__ == "__main__":
         ))
         response = await llm.invoke(messages=[{"role": "user", "content": "Hi"}], tools=[])
         print(response)
+
+
     import asyncio
+
     asyncio.run(main())
