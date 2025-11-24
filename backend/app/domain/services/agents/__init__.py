@@ -5,3 +5,8 @@
 @Author : caixiaorong01@outlook.com
 @File   : __init__.py.py
 """
+from .base import BaseAgent
+
+__all__ = [
+    "BaseAgent",
+]

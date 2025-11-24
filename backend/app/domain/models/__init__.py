@@ -20,6 +20,7 @@ from .event import (
     DoneEvent,
     Event,
     ToolEventStatus,
+    PlanEventStatus,
 )
 from .tool_result import ToolResult
 from .file import File
@@ -44,6 +45,7 @@ __all__ = [
     "DoneEvent",
     "Event",
     "ToolEventStatus",
+    "PlanEventStatus",
     "ToolResult",
     "File",
     "Message",
