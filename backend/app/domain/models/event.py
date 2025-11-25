@@ -97,7 +97,7 @@ class ToolEvent(BaseEvent):
     status: ToolEventStatus = ToolEventStatus.CALLING  # 工具事件状态
 
 
-class WaiteEvent(BaseEvent):
+class WaitEvent(BaseEvent):
     """等待事件模型"""
     type: Literal["wait"] = "wait"
 
@@ -119,7 +119,7 @@ Event = Union[
     StepEvent,
     MessageEvent,
     ToolEvent,
-    WaiteEvent,
+    WaitEvent,
     ErrorEvent,
     DoneEvent
 ]
