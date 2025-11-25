@@ -22,6 +22,8 @@ from app.domain.models.event import (
 )
 
 logger = logging.getLogger(__name__)
+
+
 class ReActAgent(BaseAgent):
     """
     ReAct Agent
