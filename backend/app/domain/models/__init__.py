@@ -25,6 +25,7 @@ from .event import (
 from .tool_result import ToolResult
 from .file import File
 from .message import Message
+from .search import SearchResults, SearchResultItem
 
 __all__ = [
     "AppConfig",
@@ -49,4 +50,6 @@ __all__ = [
     "ToolResult",
     "File",
     "Message",
+    "SearchResults",
+    "SearchResultItem",
 ]
