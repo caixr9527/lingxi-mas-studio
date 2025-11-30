@@ -14,6 +14,8 @@ from app.domain.models import ToolResult, SearchResults
 
 class SearchTool(BaseTool):
 
+    name: str = "search"
+
     def __init__(self, search_engine: SearchEngine) -> None:
         super().__init__()
         self.search_engine = search_engine
