@@ -13,7 +13,7 @@ from fastapi import APIRouter, Depends, Body
 from app.application.service import AppConfigService
 from app.domain.models import LLMConfig, AgentConfig, MCPConfig
 from app.interfaces import get_app_config_service
-from app.interfaces.schemas import Response
+from app.interfaces.schemas import Response, ListMCPServerResponse
 
 logger = logging.getLogger(__name__)
 
@@ -94,17 +94,22 @@ async def update_llm_config(
 
 @router.get(
     path="/mcp-servers",
-    response_model=Response,
+    response_model=Response[ListMCPServerResponse],
     summary="获取MCP服务器配置信息",
     description="包含MCP服务器配置信息"
 )
 async def get_mcp_servers(
         app_config_service: AppConfigService = Depends(get_app_config_service)
-) -> Response:
+) -> Response[ListMCPServerResponse]:
     """
     获取MCP服务器配置信息
     """
-    pass
+    mcp_servers = await app_config_service.get_mcp_servers()
+    return Response.success(
+        msg="获取MCP服务器配置信息成功",
+        data=ListMCPServerResponse(mcp_servers=mcp_servers)
+    )
+
 
 
 @router.post(

@@ -16,11 +16,12 @@ from mcp.client.streamable_http import streamablehttp_client
 
 from app.application.errors import NotFoundError
 from app.domain.models import MCPConfig, MCPServerConfig, MCPTransport, ToolResult
+from .base import BaseTool
 
 logger = logging.getLogger(__name__)
 
 
-class MCPClientManage:
+class MCPClientManager:
 
     def __init__(self, mcp_config: Optional[MCPConfig] = None) -> None:
         self._mcp_config: MCPConfig = mcp_config
@@ -28,6 +29,13 @@ class MCPClientManage:
         self._clients: Dict[str, ClientSession] = {}
         self._tools: Dict[str, List[Tool]] = {}
         self._initialized: bool = False
+
+    @property
+    def tools(self) -> Dict[str, List[Tool]]:
+        """
+        获取所有工具列表
+        """
+        return self._tools
 
     async def initialize(self) -> None:
         if self._initialized:
@@ -328,3 +336,60 @@ class MCPClientManage:
             logger.info("清理MCP服务成功")
         except Exception as e:
             logger.error(f"清理MCP服务失败: {e}")
+
+
+class MCPTool(BaseTool):
+    """
+    MCP工具类，继承自BaseTool
+    """
+    name: str = "mcp"
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._initialized: bool = False
+        self._tools = []
+        self._manager: MCPClientManager | None = None
+
+    async def initialize(self, mcp_config: Optional[MCPConfig] = None) -> None:
+        """
+        初始化MCP工具
+        """
+        # 检查是否已经初始化，避免重复初始化
+        if not self._initialized:
+            # 创建MCP客户端管理器实例并传入配置
+            self._manager = MCPClientManager(mcp_config=mcp_config)
+            # 初始化MCP客户端管理器，建立与各MCP服务器的连接
+            await self._manager.initialize()
+
+            # 获取所有MCP服务器提供的工具列表
+            self._tools = await self._manager.get_all_tools()
+            # 标记初始化完成状态
+            self._initialized = True
+
+    def get_tools(self) -> List[Dict[str, Any]]:
+        """
+        获取所有MCP工具
+        """
+        return self._tools
+
+    def has_tool(self, tool_name: str) -> bool:
+        """
+        检查MCP工具集合中是否存在指定工具
+        """
+        for tool in self._tools:
+            if tool["function"]["name"] == tool_name:
+                return True
+        return False
+
+    async def invoke(self, tool_name: str, **kwargs) -> ToolResult:
+        """
+        调用指定的MCP工具
+        """
+        return await self._manager.invoke(tool_name, kwargs)
+
+    async def cleanup(self) -> None:
+        """
+        清理MCP工具
+        """
+        if self._manager:
+            await self._manager.cleanup()

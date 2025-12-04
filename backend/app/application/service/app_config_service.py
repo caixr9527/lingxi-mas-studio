@@ -5,9 +5,13 @@
 @Author : caixiaorong01@outlook.com
 @File   : app_config_service.py
 """
+from typing import List
+
 from app.domain.models import AppConfig, LLMConfig, AgentConfig, MCPConfig
 from app.domain.repositories import AppConfigRepository
 from app.application.errors import NotFoundError
+from app.domain.services.tools import MCPClientManager
+from app.interfaces.schemas import ListMCPServerItem
 
 
 class AppConfigService:
@@ -80,6 +84,38 @@ class AppConfigService:
         app_config.agent_config = agent_config
         self.app_config_repository.save(app_config)
         return app_config.agent_config
+
+    async def get_mcp_servers(self) -> List[ListMCPServerItem]:
+        """
+        获取MCP服务器配置
+
+        Returns:
+            List[ListMCPServerItem]: MCP服务器配置列表
+        """
+        # 加载应用配置
+        app_config = await self._load_app_config()
+        mcp_servers = []
+        # 创建MCP客户端管理器实例
+        mcp_client_manager = MCPClientManager(mcp_config=app_config.mcp_config)
+        try:
+            # 初始化MCP客户端管理器
+            await mcp_client_manager.initialize()
+            # 获取所有已注册的工具
+            tools = mcp_client_manager.tools
+            # 遍历所有MCP服务器配置
+            for server_name, server_config in app_config.mcp_config.mcpServers.items():
+                # 构造每个服务器的响应数据，包括服务器名称、启用状态、传输方式和工具列表
+                mcp_servers.append(ListMCPServerItem(
+                    server_name=server_name,
+                    enabled=server_config.enabled,
+                    transport=server_config.transport,
+                    tools=[tool.name for tool in tools.get(server_name, [])]
+                ))
+        finally:
+            # 清理MCP客户端管理器资源
+            await mcp_client_manager.cleanup()
+        # 返回MCP服务器列表
+        return mcp_servers
 
     async def update_and_create_mcp_servers(self, mcp_config: MCPConfig) -> MCPConfig:
         """
