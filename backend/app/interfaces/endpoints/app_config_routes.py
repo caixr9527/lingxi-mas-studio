@@ -6,11 +6,12 @@
 @File   : app_config_routes.py
 """
 import logging
+from typing import Dict, Optional
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Body
 
 from app.application.service import AppConfigService
-from app.domain.models import LLMConfig, AgentConfig
+from app.domain.models import LLMConfig, AgentConfig, MCPConfig
 from app.interfaces import get_app_config_service
 from app.interfaces.schemas import Response
 
@@ -89,3 +90,70 @@ async def update_llm_config(
         msg="更新Agent配置信息成功",
         data=updated_agent_config.model_dump()
     )
+
+
+@router.get(
+    path="/mcp-servers",
+    response_model=Response,
+    summary="获取MCP服务器配置信息",
+    description="包含MCP服务器配置信息"
+)
+async def get_mcp_servers(
+        app_config_service: AppConfigService = Depends(get_app_config_service)
+) -> Response:
+    """
+    获取MCP服务器配置信息
+    """
+    pass
+
+
+@router.post(
+    path="/mcp-servers",
+    response_model=Response[Optional[Dict]],
+    summary="新增MCP服务器配置信息",
+    description="新增MCP服务器配置信息"
+)
+async def create_mcp_servers(
+        mcp_config: MCPConfig,
+        app_config_service: AppConfigService = Depends(get_app_config_service)
+) -> Response[Optional[Dict]]:
+    """
+    新增MCP服务器配置信息
+    """
+    await app_config_service.update_and_create_mcp_servers(mcp_config)
+    return Response.success(msg="新增MCP服务器配置信息成功")
+
+
+@router.post(
+    path="/mcp-servers/{server_name}/delete",
+    response_model=Response[Optional[Dict]],
+    summary="删除MCP服务器配置信息",
+    description="删除MCP服务器配置信息"
+)
+async def delete_mcp_servers(
+        server_name: str,
+        app_config_service: AppConfigService = Depends(get_app_config_service)
+) -> Response[Optional[Dict]]:
+    """
+    删除MCP服务器配置信息
+    """
+    await app_config_service.delete_mcp_server(server_name)
+    return Response.success(msg="删除MCP服务器配置信息成功")
+
+
+@router.post(
+    path="/mcp-servers/{server_name}/enabled",
+    response_model=Response[Optional[Dict]],
+    summary="启用MCP服务器配置",
+    description="启用MCP服务器配置"
+)
+async def set_mcp_server_enabled(
+        server_name: str,
+        enabled: bool = Body(...),
+        app_config_service: AppConfigService = Depends(get_app_config_service)
+) -> Response[Optional[Dict]]:
+    """
+    启用MCP服务器配置
+    """
+    await app_config_service.set_mcp_server_enabled(server_name, enabled)
+    return Response.success(msg="更新MCP服务器配置启用状态成功")

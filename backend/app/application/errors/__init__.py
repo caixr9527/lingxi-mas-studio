@@ -5,3 +5,12 @@
 @Author : caixiaorong01@outlook.com
 @File   : __init__.py.py
 """
+from .exceptions import BadRequestError, NotFoundError, ValidationError, TooManyRequestsError, ServerError
+
+__all__ = [
+    "BadRequestError",
+    "NotFoundError",
+    "ValidationError",
+    "TooManyRequestsError",
+    "ServerError",
+]

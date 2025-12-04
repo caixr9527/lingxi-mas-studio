@@ -5,7 +5,10 @@
 @Author : caixiaorong01@outlook.com
 @File   : app_config.py
 """
-from pydantic import BaseModel, ConfigDict, HttpUrl, Field
+from enum import Enum
+from typing import Any, Dict, Optional, List
+
+from pydantic import BaseModel, ConfigDict, HttpUrl, Field, model_validator
 
 
 class LLMConfig(BaseModel):
@@ -24,10 +27,51 @@ class AgentConfig(BaseModel):
     max_search_results: int = Field(default=10, gt=1, lt=30)  # Agent搜索结果的最大返回数量，有效范围(1, 30)
 
 
+class MCPTransport(str, Enum):
+    STDIO = "stdio"
+    SSE = "sse"
+    STREAMABLE_HTTP = "streamable_http"
+
+
+class MCPServerConfig(BaseModel):
+    transport: MCPTransport = MCPTransport.STREAMABLE_HTTP
+    enabled: bool = True
+    description: Optional[str] = None
+    env: Optional[Dict[str, Any]] = None
+
+    command: Optional[str] = None
+    args: Optional[List[str]] = None
+
+    url: Optional[str] = None
+    headers: Optional[Dict[str, str]] = None
+
+    model_config = ConfigDict(extra="allow")
+
+    @model_validator(mode="after")
+    def validate_mcp_server_config(self):
+        if self.transport in [MCPTransport.SSE, MCPTransport.SSE]:
+            if self.url is None:
+                raise ValueError("当传输方式为 sse 或 streamable_http 时，url 是必需的")
+
+        if self.transport == MCPTransport.STDIO:
+            if self.command is None:
+                raise ValueError("当传输方式为 stdio 时，command 是必需的")
+
+        return self
+
+
+class MCPConfig(BaseModel):
+    """MCP配置信息"""
+    mcpServers: Dict[str, MCPServerConfig] = Field(default_factory=dict)
+
+    model_config = ConfigDict(extra="allow", arbitrary_types_allowed=True)
+
+
 class AppConfig(BaseModel):
     """应用配置信息,包含Agent配置,LLM提供商,A2A网络,MCP服务器配置"""
     llm_config: LLMConfig
     agent_config: AgentConfig
+    mcp_config: MCPConfig
 
     # 允许传递额外的字段初始化
     model_config = ConfigDict(extra="allow")

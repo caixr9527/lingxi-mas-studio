@@ -14,6 +14,7 @@ dependencies = [
     "greenlet>=3.2.4",
     "httpx>=0.28.1",
     "json-repair>=0.54",
+    "mcp>=1.23.1",
     "openai>=2.7.2",
     "psycopg2-binary>=2.9.11",
     "pydantic>=2.12.4",
