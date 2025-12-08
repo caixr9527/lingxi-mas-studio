@@ -7,7 +7,7 @@
 """
 import asyncio
 import logging
-from typing import Optional, List
+from typing import Optional, List, Any
 
 from markdownify import markdownify
 from playwright.async_api import Playwright, Browser, Page, async_playwright
@@ -112,6 +112,74 @@ class PlaywrightBrowser(BrowserProtocol):
 
         # 返回格式化后的交互元素列表
         return formatted_elements
+
+    async def _get_element_by_id(self, index: int) -> Optional[Any]:
+        """根据索引获取页面上的交互元素"""
+        # 检查页面是否具有交互元素缓存、缓存是否为空或者索引是否超出范围
+        if (
+                not hasattr(self.page, "interactive_elements_cache") or
+                not self.page.interactive_elements_cache or
+                index >= len(self.page.interactive_elements_cache)
+        ):
+            return None
+        # 构造CSS选择器来定位具有特定data-manus-id属性的元素
+        selector = f'[data-manus-id="manus-element-{index}"]'
+        # 使用选择器查询页面元素并返回
+        return await self.page.query_selector(selector)
+
+    async def click(
+            self,
+            index: Optional[int] = None,
+            coordinate_x: Optional[float] = None,
+            coordinate_y: Optional[float] = None,
+    ) -> ToolResult:
+        """点击页面上的元素"""
+        await self._ensure_page()
+        if coordinate_x is not None and coordinate_y is not None:
+            # 根据坐标点击页面
+            await self.page.mouse.click(coordinate_x, coordinate_y)
+        elif index is not None:
+            try:
+                # 根据索引点击页面
+                element = await self._get_element_by_id(index)
+                if not element:
+                    return ToolResult(
+                        success=False,
+                        message=f"未找到索引为 {index} 的元素",
+                    )
+                # 检查元素是否可见
+                is_visible = await self.page.evaluate("""(element) => {
+                                    if (!element) return false;
+                                    const rect = element.getBoundingClientRect();
+                                    const style = window.getComputedStyle(element);
+                                    return !(
+                                        rect.width === 0 ||
+                                        rect.height === 0 ||
+                                        style.display === 'none' ||
+                                        style.visibility === 'hidden' ||
+                                        style.opacity === '0'
+                                    );
+                                }""", element)
+
+                # 如果元素不可见，则将其滚动到视图中
+                if not is_visible:
+                    await self.page.evaluate("""(element) => {
+                                                        if (element) {
+                                                            element.scrollIntoView({behavior: 'smooth', block: 'center'})
+                                                        }
+                                                    }""", element)
+                    await asyncio.sleep(1)
+
+                # 点击元素
+                await element.click(timeout=5000)
+            except Exception as e:
+                return ToolResult(
+                    success=False,
+                    message=f"点击元素失败: {e}",
+                )
+        return ToolResult(
+            success=True,
+        )
 
     async def initialize(self) -> bool:
         """初始化浏览器服务"""
@@ -255,6 +323,73 @@ class PlaywrightBrowser(BrowserProtocol):
                 "interactive_elements": interactive_elements,
             }
         )
+
+    async def input(
+            self,
+            text: str,
+            press_enter: bool,
+            index: Optional[int] = None,
+            coordinate_x: Optional[float] = None,
+            coordinate_y: Optional[float] = None,
+    ) -> ToolResult:
+        """根据传递的文本+换行标识+索引+xy位置实现输入框文本输入"""
+        await self._ensure_page()
+
+        # 根据提供的坐标或索引在相应元素上输入文本
+        if coordinate_x is not None and coordinate_y is not None:
+            # 如果提供了坐标，则在指定坐标位置点击并输入文本
+            await self.page.mouse.click(coordinate_x, coordinate_y)
+            await self.page.keyboard.type(text)
+        elif index is not None:
+            # 如果提供了索引，则查找对应元素并输入文本
+            try:
+                element = await self._get_element_by_id(index)
+                if not element:
+                    return ToolResult(success=False, message=f"输入文本失败, 该元素不存在")
+
+                try:
+                    # 清空元素现有内容并输入新文本
+                    await element.fill("")
+                    await element.type(text)
+                except Exception as e:
+                    return ToolResult(success=False, message=f"输入文本失败: {str(e)}")
+            except Exception as e:
+                return ToolResult(success=False, message=f"输入文本失败: {str(e)}")
+
+        # 如果需要按下回车键，则执行回车操作
+        if press_enter:
+            await self.page.keyboard.press("Enter")
+
+        return ToolResult(success=True)
+
+    async def move_mouse(self, coordinate_x: float, coordinate_y: float) -> ToolResult:
+        """传递xy坐标移动鼠标"""
+        await self._ensure_page()
+        await self.page.mouse.move(coordinate_x, coordinate_y)
+        return ToolResult(success=True)
+
+    async def press_key(self, key: str) -> ToolResult:
+        """传递按键进行模拟"""
+        await self._ensure_page()
+        await self.page.keyboard.press(key)
+        return ToolResult(success=True)
+
+    async def select_option(self, index: int, option: int) -> ToolResult:
+        """传递索引+下拉菜单选项选择指定的菜单信息"""
+        await self._ensure_page()
+
+        try:
+            # 根据索引获取下拉菜单元素
+            element = await self._get_element_by_id(index)
+            if not element:
+                return ToolResult(success=False, message=f"使用索引[{index}]查找该下拉菜单元素不存在")
+
+            # 选择指定的选项
+            await element.select_option(index=option)
+            return ToolResult(success=True)
+        except Exception as e:
+            # 处理选择下拉菜单选项时可能出现的异常
+            return ToolResult(success=False, message=f"选择下拉菜单选项失败: {str(e)}")
 
     async def restart(self, url: str) -> ToolResult:
         """重启浏览器并导航到指定URL"""
