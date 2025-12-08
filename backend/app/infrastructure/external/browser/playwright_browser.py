@@ -7,11 +7,14 @@
 """
 import asyncio
 import logging
-from typing import Optional
+from typing import Optional, List
 
+from markdownify import markdownify
 from playwright.async_api import Playwright, Browser, Page, async_playwright
 
 from app.domain.external import Browser as BrowserProtocol, LLM
+from app.domain.models import ToolResult
+from .playwright_browser_fun import GET_VISIBLE_CONTENT_FUNC, GET_INTERACTIVE_ELEMENTS_FUNC
 
 logger = logging.getLogger(__name__)
 
@@ -60,6 +63,55 @@ class PlaywrightBrowser(BrowserProtocol):
                     # 如果当前页面不是最新页面，则更新为最新页面
                     if self.page != latest_page:
                         self.page = latest_page
+
+    async def _extract_content(self) -> str:
+        # 获取页面可见内容
+        visible_content = await self.page.evaluate(GET_VISIBLE_CONTENT_FUNC)
+        # 将HTML内容转换为Markdown格式
+        markdown_content = markdownify(visible_content)
+        # 限制内容长度最多为50000字符
+        max_content_length = min(len(markdown_content), 50000)
+        # 如果配置了LLM，则使用LLM处理内容
+        if self.llm:
+            # 调用LLM提取并格式化内容
+            response = await self.llm.invoke([
+                {
+                    "role": "system",
+                    "content": "您是一名专业的网页信息提取助手。请从当前页面内容中提取所有信息并将其转换为markdown格式。",
+                },
+                {
+                    "role": "user",
+                    "content": markdown_content[:max_content_length],
+                }
+            ])
+            # 返回LLM处理后的内容
+            return response.get("content", "")
+        else:
+            # 没有LLM时直接返回截取后的Markdown内容
+            return markdown_content[:max_content_length]
+
+    async def _extract_interactive_elements(self) -> List[str]:
+        """提取当前页面上的可交互元素"""
+        # 确保页面已初始化
+        await self._ensure_page()
+
+        # 清空页面的交互元素缓存
+        self.page.interactive_elements_cache = []
+
+        # 执行JavaScript函数获取页面上所有可交互的元素
+        interactive_elements = await self.page.evaluate(GET_INTERACTIVE_ELEMENTS_FUNC)
+
+        # 将获取到的交互元素存储到页面缓存中
+        self.page.interactive_elements_cache = interactive_elements
+
+        # 格式化交互元素列表，生成易于阅读的字符串格式
+        formatted_elements = []
+        for element in interactive_elements:
+            # 将每个元素格式化为"索引:<标签名>文本内容</标签名>"的形式
+            formatted_elements.append(f"{element['index']}:<{element['tag']}>{element['text']}</{element['tag']}>")
+
+        # 返回格式化后的交互元素列表
+        return formatted_elements
 
     async def initialize(self) -> bool:
         """初始化浏览器服务"""
@@ -172,3 +224,98 @@ class PlaywrightBrowser(BrowserProtocol):
 
         # 超时未完成加载，返回False
         return False
+
+    async def navigate(self, url: str) -> ToolResult:
+        """导航到指定URL"""
+        await self._ensure_page()
+
+        try:
+            self.page.interactive_elements_cache = []
+            await self.page.goto(url)
+            return ToolResult(
+                success=True,
+                data={"interactive_elements": await self._extract_interactive_elements()}
+            )
+        except Exception as e:
+            return ToolResult(
+                success=False,
+                message=f"导航到URL {url} 失败: {str(e)}"
+            )
+
+    async def view_page(self) -> ToolResult:
+        """查看当前页面内容"""
+        await self._ensure_page()
+        await self.wait_for_page_load()
+
+        interactive_elements = await self._extract_interactive_elements()
+        return ToolResult(
+            success=True,
+            data={
+                "content": await self._extract_content(),
+                "interactive_elements": interactive_elements,
+            }
+        )
+
+    async def restart(self, url: str) -> ToolResult:
+        """重启浏览器并导航到指定URL"""
+        await self.cleanup()
+        return await self.navigate(url)
+
+    async def scroll_up(self, to_top: Optional[bool] = None) -> ToolResult:
+        """向上滚动当前页面"""
+        await self._ensure_page()
+        if to_top:
+            await self.page.evaluate("window.scrollTo(0, 0)")
+        else:
+            await self.page.evaluate("window.scrollBy(0, -window.innerHeight)")
+
+        return ToolResult(
+            success=True
+        )
+
+    async def scroll_down(self, to_bottom: Optional[bool] = None) -> ToolResult:
+        """向下滚动当前页面"""
+        await self._ensure_page()
+        if to_bottom:
+            await self.page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+        else:
+            await self.page.evaluate("window.scrollBy(0, window.innerHeight)")
+
+        return ToolResult(
+            success=True
+        )
+
+    async def screenshot(self, full_page: Optional[bool] = None) -> bytes:
+        """获取当前页面截图"""
+        await self._ensure_page()
+        screenshot_option = {
+            "full_page": full_page,
+            "type": "png",
+        }
+        return await self.page.screenshot(**screenshot_option)
+
+    async def console_exec(self, javascript: str) -> ToolResult:
+        """在浏览器控制台执行 JavaScript 脚本"""
+        await self._ensure_page()
+        result = await self.page.evaluate(javascript)
+        return ToolResult(
+            success=True,
+            data={"result": result}
+        )
+
+    async def console_view(self, max_lines: Optional[int] = None) -> ToolResult:
+        """查看浏览器控制台输出"""
+        await self._ensure_page()
+        # 从页面中获取控制台日志，如果不存在则返回空数组
+        logs = await self.page.evaluate("""() => {
+            return window.console.logs || [];
+        }""")
+
+        # 如果指定了最大行数，则只返回最后的max_lines条日志
+        if max_lines is not None:
+            logs = logs[-max_lines:]
+
+        return ToolResult(
+            success=True,
+            data={"logs": logs}
+        )
