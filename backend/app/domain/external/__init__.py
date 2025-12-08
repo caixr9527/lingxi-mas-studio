@@ -10,6 +10,8 @@ from .health_checker import HealthChecker
 from .task import Task, TaskRunner
 from .message_queue import MessageQueue
 from .json_parser import JSONParser
+from .search import SearchEngine
+from .browser import Browser
 
 __all__ = [
     "LLM",
@@ -18,4 +20,6 @@ __all__ = [
     "TaskRunner",
     "MessageQueue",
     "JSONParser",
+    "SearchEngine",
+    "Browser",
 ]

@@ -6,7 +6,12 @@
 @File   : __init__.py.py
 """
 from .base import BaseTool
+from .mcp import MCPClientManager, MCPTool
+from .search import SearchTool
 
 __all__ = [
-    "BaseTool"
+    "BaseTool",
+    "MCPClientManager",
+    "MCPTool",
+    "SearchTool"
 ]

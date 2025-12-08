@@ -13,7 +13,7 @@ import yaml
 from filelock import FileLock
 
 from app.application.errors.exceptions import ServerError
-from app.domain.models import AppConfig, LLMConfig
+from app.domain.models import AppConfig, LLMConfig, AgentConfig, MCPConfig
 from app.domain.repositories import AppConfigRepository
 
 logger = logging.getLogger(__name__)
@@ -34,7 +34,9 @@ class FileAppConfigRepository(AppConfigRepository):
         """创建文件"""
         if not self._config_path.exists():
             default_app_config = AppConfig(
-                llm_config=LLMConfig()
+                llm_config=LLMConfig(),
+                agent_config=AgentConfig(),
+                mcp_config=MCPConfig(),
             )
             self.save(default_app_config)
 

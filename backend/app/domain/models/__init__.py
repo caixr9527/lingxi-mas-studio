@@ -5,7 +5,7 @@
 @Author : caixiaorong01@outlook.com
 @File   : __init__.py.py
 """
-from .app_config import AppConfig, LLMConfig, AgentConfig
+from .app_config import AppConfig, LLMConfig, AgentConfig, MCPConfig, MCPTransport, MCPServerConfig
 from .health_status import HealthStatus
 from .memory import Memory
 from .plan import Plan, Step, ExecutionStatus
@@ -25,11 +25,15 @@ from .event import (
 from .tool_result import ToolResult
 from .file import File
 from .message import Message
+from .search import SearchResults, SearchResultItem
 
 __all__ = [
     "AppConfig",
     "LLMConfig",
     "AgentConfig",
+    "MCPConfig",
+    "MCPTransport",
+    "MCPServerConfig",
     "HealthStatus",
     "Memory",
     "Plan",
@@ -49,4 +53,6 @@ __all__ = [
     "ToolResult",
     "File",
     "Message",
+    "SearchResults",
+    "SearchResultItem",
 ]
