@@ -16,6 +16,7 @@ dependencies = [
     "json-repair>=0.54",
     "mcp>=1.23.1",
     "openai>=2.7.2",
+    "playwright>=1.56.0",
     "psycopg2-binary>=2.9.11",
     "pydantic>=2.12.4",
     "pydantic-settings>=2.12.0",
