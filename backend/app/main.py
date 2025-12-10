@@ -33,7 +33,7 @@ openapi_tags = [
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """生命周期上下文管理"""
-    logger.info(f"Starting app in {settings.env} mode")
+    logger.info(f"{settings.env} 模式下启动服务")
     # 初始化数据库连接
     await get_redis_client().init()
     await get_postgres().init()
@@ -45,7 +45,7 @@ async def lifespan(app: FastAPI):
         await get_redis_client().close()
         await get_postgres().close()
         await get_cos().close()
-        logger.info("Shutting down app")
+        logger.info("停止服务")
 
 
 app = FastAPI(
