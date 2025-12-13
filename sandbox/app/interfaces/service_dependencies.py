@@ -5,3 +5,11 @@
 @Author : caixiaorong01@outlook.com
 @File   : service_dependencies.py
 """
+from functools import lru_cache
+
+from app.services import ShellService
+
+
+@lru_cache()
+def get_shell_service() -> ShellService:
+    return ShellService()

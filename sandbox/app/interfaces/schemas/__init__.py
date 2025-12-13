@@ -6,5 +6,18 @@
 @File   : __init__.py.py
 """
 from .base import Response
+from .shell import (
+    ExecCommandRequest,
+    ViewShellRequest,
+    WaitForProcessRequest,
+    WriteToProcessRequest,
+    KillProcessRequest)
 
-__all__ = ["Response"]
+__all__ = [
+    "Response",
+    "ExecCommandRequest",
+    "ViewShellRequest",
+    "WaitForProcessRequest",
+    "WriteToProcessRequest",
+    "KillProcessRequest"
+]
