@@ -7,6 +7,7 @@
 """
 from .file import (
     FileReadResult,
+    FileWriteResult
 )
 from .shell import (
     ShellExecResult,
@@ -26,5 +27,6 @@ _all_ = [
     "ShellViewResult",
     "ShellWriteResult",
     "ShellKillResult",
-    "FileReadResult"
+    "FileReadResult",
+    "FileWriteResult",
 ]

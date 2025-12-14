@@ -7,7 +7,8 @@
 """
 from .base import Response
 from .file import (
-    ReadFileRequest
+    ReadFileRequest,
+    WriteFileRequest,
 )
 from .shell import (
     ExecCommandRequest,
@@ -24,5 +25,6 @@ __all__ = [
     "WaitForProcessRequest",
     "WriteToProcessRequest",
     "KillProcessRequest",
-    "ReadFileRequest"
+    "ReadFileRequest",
+    "WriteFileRequest",
 ]
