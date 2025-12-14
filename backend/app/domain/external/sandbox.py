@@ -90,10 +90,12 @@ class Sandbox(Protocol):
             file_path: str,
             start_line: Optional[int] = None,
             end_line: Optional[int] = None,
-            sudo: bool = False
+            sudo: bool = False,
+            max_length: int = 10000
     ) -> ToolResult:
         """
         读取文件
+        :param max_length: 最大长度
         :param end_line: 结束行
         :param start_line: 开始行
         :param file_path: 文件路径
