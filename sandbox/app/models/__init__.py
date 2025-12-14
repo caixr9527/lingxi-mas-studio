@@ -5,7 +5,15 @@
 @Author : caixiaorong01@outlook.com
 @File   : __init__.py.py
 """
-from .shell import ShellExecResult, ConsoleRecord, Shell, ShellWaitResult, ShellViewResult
+from .shell import (
+    ShellExecResult,
+    ConsoleRecord,
+    Shell,
+    ShellWaitResult,
+    ShellViewResult,
+    ShellWriteResult,
+    ShellKillResult
+)
 
 _all_ = [
     "ShellExecResult",
@@ -13,4 +21,6 @@ _all_ = [
     "Shell",
     "ShellWaitResult",
     "ShellViewResult",
+    "ShellWriteResult",
+    "ShellKillResult"
 ]

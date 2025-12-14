@@ -8,6 +8,7 @@
 import asyncio
 import codecs
 import getpass
+import locale
 import logging
 import os
 import re
@@ -18,7 +19,15 @@ import uuid
 from typing import Dict, Optional, List
 
 from app.interfaces.errors import BadRequestException, AppException, NotFoundException
-from app.models import ShellExecResult, Shell, ConsoleRecord, ShellWaitResult, ShellViewResult
+from app.models import (
+    ShellExecResult,
+    Shell,
+    ConsoleRecord,
+    ShellWaitResult,
+    ShellViewResult,
+    ShellWriteResult,
+    ShellKillResult
+)
 
 logger = logging.getLogger(__name__)
 
@@ -63,7 +72,7 @@ class ShellService:
         :return: 异步子进程对象
         """
         logger.debug(f"正在创建Shell进程, 执行目录: {exec_dir}, 命令: {command}")
-        
+
         # 根据操作系统选择合适的Shell解释器
         shell_exec = None
         if sys.platform != "win32":
@@ -178,12 +187,12 @@ class ShellService:
         # 设置默认超时时间为60秒，如果传入的seconds为None或小于等于0，则使用默认值
         seconds = 60 if seconds is None or seconds <= 0 else seconds
         logger.debug(f"正在等待Shell进程, 会话: {session_id}, 超时为: {seconds}秒")
-        
+
         # 检查指定的会话是否存在，不存在则抛出异常
         if session_id not in self.active_shells:
             logger.error(f"会话: {session_id} 不存在")
             raise NotFoundException(f"会话: {session_id} 不存在")
-        
+
         # 获取会话对应的Shell对象和进程对象
         shell = self.active_shells[session_id]
         process = shell.process
@@ -348,3 +357,112 @@ class ShellService:
                     "command": command
                 }
             )
+
+    async def write_to_process(
+            self,
+            session_id: str,
+            input_text: str,
+            press_enter: bool = True
+    ) -> ShellWriteResult:
+        """
+        向指定会话的Shell进程中写入数据
+        
+        :param session_id: Shell会话ID
+        :param input_text: 要写入的文本内容
+        :param press_enter: 是否在文本末尾添加回车符，默认为True
+        :return: ShellWriteResult对象，表示写入操作的结果状态
+        """
+        logger.debug(f"会话: {session_id} 向进程写入数据: {input_text} press_enter: {press_enter}")
+        # 检查会话是否存在，不存在则抛出异常
+        if session_id not in self.active_shells:
+            logger.error(f"会话: {session_id} 不存在")
+            raise BadRequestException(f"会话: {session_id} 不存在")
+
+        # 获取会话对应的Shell对象和进程对象
+        shell = self.active_shells[session_id]
+        process = shell.process
+
+        try:
+            # 检查进程是否已经结束，如果已结束则抛出异常
+            if process.returncode is not None:
+                logger.error(f"会话: {session_id} 进程已结束")
+                raise BadRequestException(f"会话: {session_id} 进程已结束")
+
+            # 根据操作系统确定编码方式和换行符
+            if sys.platform == "win32":
+                encoding = locale.getpreferredencoding()
+                line_ending = "\r\n"
+            else:
+                encoding = "utf-8"
+                line_ending = "\n"
+
+            # 构造要发送的文本
+            text_to_send = input_text
+            if press_enter:
+                text_to_send += line_ending
+
+            # 将文本编码为字节数据
+            input_data = text_to_send.encode(encoding)
+
+            # 记录写入的文本到输出历史中
+            log_text = input_text + ("\n" if press_enter else "")
+            shell.output += log_text
+            if shell.console_records:
+                shell.console_records[-1].output += log_text
+
+            # 向进程的标准输入写入数据并刷新缓冲区
+            process.stdin.write(input_data)
+            await process.stdin.drain()
+
+            logger.info(f"会话: {session_id} 向进程写入数据: {input_text} press_enter: {press_enter} 成功")
+            return ShellWriteResult(status="success")
+        except UnicodeError as e:
+            # 处理Unicode编码错误
+            logger.error(f"编码错误: {str(e)}")
+            raise AppException(msg=f"编码错误: {str(e)}")
+        except Exception as e:
+            # 处理其他异常情况
+            logger.error(f"向进程写入数据失败: {str(e)}")
+            raise AppException(msg=f"向进程写入数据失败: {str(e)}")
+
+    async def kill_process(self, session_id: str) -> ShellKillResult:
+        """
+        终止指定会话的Shell进程
+        
+        :param session_id: Shell会话ID
+        :return: ShellKillResult对象，表示终止操作的结果状态
+        """
+        logger.debug(f"正在关闭会话进程: {session_id}")
+        # 检查会话是否存在，不存在则抛出异常
+        if session_id not in self.active_shells:
+            logger.error(f"会话: {session_id} 不存在")
+            raise BadRequestException(f"会话: {session_id} 不存在")
+        # 获取会话对应的Shell对象和进程对象
+        shell = self.active_shells[session_id]
+        process = shell.process
+
+        try:
+            # 检查进程是否仍在运行
+            if process.returncode is None:
+                logger.info(f"正在关闭会话进程: {session_id}")
+                # 发送终止信号
+                process.terminate()
+                try:
+                    # 等待进程正常结束，超时时间为3秒
+                    await asyncio.wait_for(process.wait(), timeout=3)
+                except asyncio.TimeoutError:
+                    # 如果等待超时，则强制杀死进程
+                    logger.warning(f"等待进程结束超时: {session_id}")
+                    process.kill()
+
+                logger.info(f"会话: {session_id} 进程已结束, 状态码: {process.returncode}")
+                # 返回终止成功的结果
+                return ShellKillResult(status="terminated", returncode=process.returncode)
+            else:
+                logger.info(f"会话: {session_id} 进程已结束, 返回码: {process.returncode}")
+                # 返回进程已结束的结果
+                return ShellKillResult(status="already_terminated", returncode=process.returncode)
+        except Exception as e:
+            # 处理关闭进程时出现的异常
+            logger.error(f"关闭进程失败: {str(e)}", exc_info=True)
+            raise AppException(msg=f"关闭进程失败: {str(e)}")

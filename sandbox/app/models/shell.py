@@ -46,3 +46,12 @@ class ShellExecResult(BaseModel):
     status: str = Field(..., description="命令执行结果状态")
     returncode: Optional[int] = Field(default=None, description="命令执行结果状态码")
     output: Optional[str] = Field(default=None, description="命令执行结果输出")
+
+
+class ShellWriteResult(BaseModel):
+    status: str = Field(..., description="写入状态")
+
+
+class ShellKillResult(BaseModel):
+    status: str = Field(..., description="关闭状态")
+    returncode: int = Field(default=None, description="命令执行结果状态码")
