@@ -5,6 +5,9 @@
 @Author : caixiaorong01@outlook.com
 @File   : __init__.py.py
 """
+from .file import (
+    FileReadResult,
+)
 from .shell import (
     ShellExecResult,
     ConsoleRecord,
@@ -22,5 +25,6 @@ _all_ = [
     "ShellWaitResult",
     "ShellViewResult",
     "ShellWriteResult",
-    "ShellKillResult"
+    "ShellKillResult",
+    "FileReadResult"
 ]

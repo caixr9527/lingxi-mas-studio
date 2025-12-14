@@ -5,8 +5,10 @@
 @Author : caixiaorong01@outlook.com
 @File   : __init__.py.py
 """
+from .file import FileService
 from .shell import ShellService
 
 __all__ = [
-    "ShellService"
+    "ShellService",
+    "FileService"
 ]

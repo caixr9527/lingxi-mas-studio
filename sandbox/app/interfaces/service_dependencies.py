@@ -7,9 +7,14 @@
 """
 from functools import lru_cache
 
-from app.services import ShellService
+from app.services import ShellService, FileService
 
 
 @lru_cache()
 def get_shell_service() -> ShellService:
     return ShellService()
+
+
+@lru_cache()
+def get_file_service() -> FileService:
+    return FileService()

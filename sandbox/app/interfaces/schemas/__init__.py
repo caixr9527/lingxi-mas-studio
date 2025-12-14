@@ -6,12 +6,16 @@
 @File   : __init__.py.py
 """
 from .base import Response
+from .file import (
+    ReadFileRequest
+)
 from .shell import (
     ExecCommandRequest,
     ViewShellRequest,
     WaitForProcessRequest,
     WriteToProcessRequest,
-    KillProcessRequest)
+    KillProcessRequest,
+)
 
 __all__ = [
     "Response",
@@ -19,5 +23,6 @@ __all__ = [
     "ViewShellRequest",
     "WaitForProcessRequest",
     "WriteToProcessRequest",
-    "KillProcessRequest"
+    "KillProcessRequest",
+    "ReadFileRequest"
 ]
