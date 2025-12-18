@@ -1,0 +1,20 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+"""
+@Time   : 2025/12/14 14:35
+@Author : caixiaorong01@outlook.com
+@File   : file.py
+"""
+from typing import Optional
+
+from pydantic import BaseModel, Field
+
+
+class FileReadResult(BaseModel):
+    filepath: str = Field(..., description="文件路径")
+    content: str = Field(..., description="文件内容")
+
+
+class FileWriteResult(BaseModel):
+    filepath: str = Field(..., description="文件路径")
+    bytes_written: Optional[int] = Field(None, description="写入的字节数")
