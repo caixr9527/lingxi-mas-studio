@@ -6,10 +6,8 @@
 @File   : file.py
 """
 import asyncio
-import locale
 import logging
 import os.path
-import sys
 from typing import Optional
 
 from app.interfaces.errors import NotFoundException, BadRequestException, AppException
@@ -19,6 +17,9 @@ logger = logging.getLogger(__name__)
 
 
 class FileService:
+
+    def __init__(self) -> None:
+        pass
 
     @classmethod
     async def read_file(
@@ -43,10 +44,10 @@ class FileService:
                 raise NotFoundException(f"文件不存在或没有权限访问: {filepath}")
 
             # 获取系统推荐的编码格式，Windows系统使用locale编码，其他系统默认使用UTF-8
-            encoding = locale.getpreferredencoding() if sys.platform == "win32" else "utf-8"
+            encoding = "utf-8"
 
             # 如果需要sudo权限且不是Windows系统，则使用sudo命令读取文件
-            if sudo and sys.platform != "win32":
+            if sudo:
                 # 构造sudo cat命令来读取文件内容
                 command = f"sudo cat '{filepath}'"
                 # 创建异步子进程执行sudo命令
@@ -72,10 +73,10 @@ class FileService:
                         # 以指定编码打开并读取文件
                         with open(filepath, "r", encoding=encoding) as f:
                             return f.read()
-                    except Exception as e:
+                    except Exception as ex:
                         # 捕获异常并抛出自定义异常
                         raise AppException(
-                            msg=f"获取文件内容失败: {e}"
+                            msg=f"获取文件内容失败: {ex}"
                         )
 
                 # 在线程池中执行文件读取操作，避免阻塞事件循环
@@ -133,7 +134,7 @@ class FileService:
                 content += "\n"
 
             # 如果需要sudo权限且不是Windows系统，则使用sudo命令写入文件
-            if sudo and sys.platform != "win32":
+            if sudo:
                 # 确定写入模式：追加(>>)或覆盖(>)
                 mode = ">>" if append else ">"
 

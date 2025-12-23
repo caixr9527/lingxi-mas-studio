@@ -8,13 +8,10 @@
 import asyncio
 import codecs
 import getpass
-import locale
 import logging
 import os
 import re
-import shutil
 import socket
-import sys
 import uuid
 from typing import Dict, Optional, List
 
@@ -33,7 +30,10 @@ logger = logging.getLogger(__name__)
 
 
 class ShellService:
-    active_shells: Dict[str, Shell] = {}
+    active_shells: Dict[str, Shell]
+
+    def __init__(self) -> None:
+        self.active_shells = {}
 
     @classmethod
     def _get_display_path(cls, path: str) -> str:
@@ -63,7 +63,8 @@ class ShellService:
         display_dir = self._get_display_path(exec_dir)  # 获取显示路径
         return f"{username}@{hostname}:{display_dir}"  # 返回格式化后的PS1提示符
 
-    async def _create_process(self, exec_dir: str, command: str) -> asyncio.subprocess.Process:
+    @classmethod
+    async def _create_process(cls, exec_dir: str, command: str) -> asyncio.subprocess.Process:
         """
         创建异步子进程来执行Shell命令
         
@@ -72,20 +73,12 @@ class ShellService:
         :return: 异步子进程对象
         """
         logger.debug(f"正在创建Shell进程, 执行目录: {exec_dir}, 命令: {command}")
-
-        # 根据操作系统选择合适的Shell解释器
         shell_exec = None
-        if sys.platform != "win32":
-            # Unix/Linux/macOS系统优先选择bash，如果没有则选择zsh
-            if os.path.exists("/bin/bash"):
-                shell_exec = "/bin/bash"
-            elif os.path.exists("/bin/zsh"):
-                shell_exec = "/bin/zsh"
-        elif sys.platform == "win32":
-            # Windows系统优先选择PowerShell，如果没有则选择CMD
-            shell_exec = shutil.which("powershell")
-            if not shell_exec:
-                shell_exec = shutil.which("cmd")
+        # 根据操作系统选择合适的Shell解释器
+        if os.path.exists("/bin/bash"):
+            shell_exec = "/bin/bash"
+        elif os.path.exists("/bin/zsh"):
+            shell_exec = "/bin/zsh"
 
         # 创建异步子进程
         return await asyncio.create_subprocess_shell(
@@ -100,11 +93,7 @@ class ShellService:
 
     async def _start_output_reader(self, session_id: str, process: asyncio.subprocess.Process) -> None:
         logger.debug(f"正在启动Shell输出读取器, 会话: {session_id}")
-        if sys.platform == "win32":
-            encoding = "gb18030"  # gb18030比gbk支持的生僻字更多，且兼容gbk
-        else:
-            encoding = "utf-8"
-
+        encoding = "utf-8"
         # 创建增量编码器（解决字符被切断的问题）
         decoder = codecs.getincrementaldecoder(encoding)(errors="replace")
         shell = self.active_shells.get(session_id)
@@ -112,7 +101,7 @@ class ShellService:
         while True:
             if process.stdout:
                 try:
-                    # 从进程的标准输出中读取数据，每次最多读取4096字节
+                    # 从进程的标准输出中读取数据，每次最多读取4096个字节
                     buffer = await process.stdout.read(4096)
                     # 如果没有读取到数据，说明进程已经结束，跳出循环
                     if not buffer:
@@ -389,12 +378,8 @@ class ShellService:
                 raise BadRequestException(f"会话: {session_id} 进程已结束")
 
             # 根据操作系统确定编码方式和换行符
-            if sys.platform == "win32":
-                encoding = locale.getpreferredencoding()
-                line_ending = "\r\n"
-            else:
-                encoding = "utf-8"
-                line_ending = "\n"
+            encoding = "utf-8"
+            line_ending = "\n"
 
             # 构造要发送的文本
             text_to_send = input_text
