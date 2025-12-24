@@ -10,11 +10,11 @@ from .file import (
     FileWriteResult
 )
 from .shell import (
-    ShellExecResult,
+    ShellExecuteResult,
     ConsoleRecord,
     Shell,
     ShellWaitResult,
-    ShellViewResult,
+    ShellReadResult,
     ShellWriteResult,
     ShellKillResult
 )

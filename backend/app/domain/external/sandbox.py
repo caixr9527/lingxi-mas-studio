@@ -23,7 +23,7 @@ class Sandbox(Protocol):
         """
         ...
 
-    async def view_shell(self, session_id: str, console: bool = False) -> ToolResult:
+    async def read_shell_output(self, session_id: str, console: bool = False) -> ToolResult:
         """
         查看Shell
         :param session_id: 会话ID
@@ -32,7 +32,7 @@ class Sandbox(Protocol):
         """
         ...
 
-    async def wait_for_process(self, session_id: str, seconds: Optional[int] = None) -> ToolResult:
+    async def wait_process(self, session_id: str, seconds: Optional[int] = None) -> ToolResult:
         """
         等待进程结束
         :param session_id: 会话ID
@@ -41,7 +41,7 @@ class Sandbox(Protocol):
         """
         ...
 
-    async def write_to_process(
+    async def write_shell_input(
             self,
             session_id: str,
             input_text: str,
@@ -64,7 +64,7 @@ class Sandbox(Protocol):
         """
         ...
 
-    async def file_write(
+    async def write_file(
             self,
             file_path: str,
             content: str,
@@ -85,7 +85,7 @@ class Sandbox(Protocol):
         """
         ...
 
-    async def file_read(
+    async def read_file(
             self,
             file_path: str,
             start_line: Optional[int] = None,
@@ -104,7 +104,7 @@ class Sandbox(Protocol):
         """
         ...
 
-    async def file_exists(self, file_path: str) -> ToolResult:
+    async def check_file_exists(self, file_path: str) -> ToolResult:
         """
         判断文件是否存在
         :param file_path: 文件路径
@@ -112,7 +112,7 @@ class Sandbox(Protocol):
         """
         ...
 
-    async def file_delete(self, file_path: str) -> ToolResult:
+    async def delete_file(self, file_path: str) -> ToolResult:
         """
         删除文件
         :param file_path: 文件路径
@@ -120,7 +120,7 @@ class Sandbox(Protocol):
         """
         ...
 
-    async def file_list(self, dir_path: str) -> ToolResult:
+    async def list_files(self, dir_path: str) -> ToolResult:
         """
         列出目录下的文件
         :param dir_path: 目录路径
@@ -128,7 +128,7 @@ class Sandbox(Protocol):
         """
         ...
 
-    async def file_replace(
+    async def replace_in_file(
             self,
             file_path: str,
             old_text: str,
@@ -145,7 +145,7 @@ class Sandbox(Protocol):
         """
         ...
 
-    async def file_search(self, file_path: str, regex: str, sudo: bool = False) -> ToolResult:
+    async def search_in_file(self, file_path: str, regex: str, sudo: bool = False) -> ToolResult:
         """
         搜索文件
         :param file_path: 文件路径
@@ -155,7 +155,7 @@ class Sandbox(Protocol):
         """
         ...
 
-    async def file_find(self, dir_path: str, glob_pattern: str) -> ToolResult:
+    async def find_files(self, dir_path: str, glob_pattern: str) -> ToolResult:
         """
         查找文件
         :param dir_path: 目录路径
@@ -164,7 +164,7 @@ class Sandbox(Protocol):
         """
         ...
 
-    async def file_upload(
+    async def upload_file(
             self,
             file_data: BinaryIO,
             file_path: str,
@@ -179,7 +179,7 @@ class Sandbox(Protocol):
         """
         ...
 
-    async def file_download(self, file_path: str) -> BinaryIO:
+    async def download_file(self, file_path: str) -> BinaryIO:
         """
         下载文件
         :param file_path: 文件路径

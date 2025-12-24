@@ -7,7 +7,7 @@
 """
 from fastapi import APIRouter, Depends
 
-from app.interfaces.schemas import Response, ReadFileRequest, WriteFileRequest
+from app.interfaces.schemas import Response, FileReadRequest, FileWriteRequest
 from app.interfaces.service_dependencies import get_file_service
 from app.models import FileReadResult, FileWriteResult
 from app.services import FileService
@@ -22,7 +22,7 @@ router = APIRouter(prefix="/file", tags=["文件模块"])
     description="读取文件",
 )
 async def read_file(
-        request: ReadFileRequest,
+        request: FileReadRequest,
         file_service: FileService = Depends(get_file_service)
 ) -> Response[FileReadResult]:
     result = await file_service.read_file(
@@ -45,7 +45,7 @@ async def read_file(
     description="写入文件",
 )
 async def write_file(
-        request: WriteFileRequest,
+        request: FileWriteRequest,
         file_service: FileService = Depends(get_file_service)
 ) -> Response[FileWriteResult]:
     result = await file_service.write_file(

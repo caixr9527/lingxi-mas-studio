@@ -10,16 +10,16 @@ import os.path
 from fastapi import APIRouter, Depends
 
 from app.interfaces.errors import BadRequestException
-from app.interfaces.schemas import (
-    ExecCommandRequest,
-    ViewShellRequest,
-    WaitForProcessRequest,
-    WriteToProcessRequest,
-    KillProcessRequest
-)
 from app.interfaces.schemas import Response
+from app.interfaces.schemas import (
+    ShellExecutedRequest,
+    ShellReadRequest,
+    ShellWaitRequest,
+    ShellWriteRequest,
+    ShellKillRequest
+)
 from app.interfaces.service_dependencies import get_shell_service
-from app.models import ShellExecResult, ShellViewResult, ShellWaitResult, ShellWriteResult, ShellKillResult
+from app.models import ShellExecuteResult, ShellReadResult, ShellWaitResult, ShellWriteResult, ShellKillResult
 from app.services import ShellService
 
 router = APIRouter(prefix="/shell", tags=["shell模块"])
@@ -27,15 +27,15 @@ router = APIRouter(prefix="/shell", tags=["shell模块"])
 
 @router.post(
     path="/exec-command",
-    response_model=Response[ShellExecResult],
+    response_model=Response[ShellExecuteResult],
     summary="执行命令",
     description="执行命令",
     response_description="返回命令执行结果"
 )
 async def exec_command(
-        request: ExecCommandRequest,
+        request: ShellExecutedRequest,
         shell_service: ShellService = Depends(get_shell_service)
-) -> Response[ShellExecResult]:
+) -> Response[ShellExecuteResult]:
     if not request.session_id or request.session_id == "":
         request.session_id = shell_service.create_session_id()
 
@@ -52,37 +52,37 @@ async def exec_command(
 
 
 @router.post(
-    path="/view-shell",
-    response_model=Response[ShellViewResult],
+    path="/read-shell-output",
+    response_model=Response[ShellReadResult],
     description="查看shell",
     summary="查看shell"
 )
-async def view_shell(
-        request: ViewShellRequest,
+async def read_shell_output(
+        request: ShellReadRequest,
         shell_service: ShellService = Depends(get_shell_service)
-) -> Response[ShellViewResult]:
+) -> Response[ShellReadResult]:
     if not request.session_id or request.session_id == "":
         raise BadRequestException("session_id不能为空")
 
-    result = await shell_service.view_shell(session_id=request.session_id, console=request.console)
+    result = await shell_service.read_shell_output(session_id=request.session_id, console=request.console)
 
     return Response.success(data=result)
 
 
 @router.post(
-    path="/wait-for-process",
+    path="/wait-process",
     response_model=Response[ShellWaitResult],
     description="等待进程结束",
     summary="等待进程结束"
 )
-async def wait_for_process(
-        request: WaitForProcessRequest,
+async def wait_process(
+        request: ShellWaitRequest,
         shell_service: ShellService = Depends(get_shell_service)
 ) -> Response[ShellWaitResult]:
     if not request.session_id or request.session_id == "":
         raise BadRequestException("session_id不能为空")
 
-    result = await shell_service.wait_for_process(session_id=request.session_id, seconds=request.seconds)
+    result = await shell_service.wait_process(session_id=request.session_id, seconds=request.seconds)
 
     return Response.success(
         msg=f"进程结束，返回状态嘛(returncode): {result.returncode}",
@@ -91,13 +91,13 @@ async def wait_for_process(
 
 
 @router.post(
-    path="/write-to-process",
+    path="/write-shell-input",
     response_model=Response[ShellWriteResult],
     description="向进程写入数据",
     summary="向进程写入数据"
 )
-async def write_to_process(
-        request: WriteToProcessRequest,
+async def write_shell_input(
+        request: ShellWriteRequest,
         shell_service: ShellService = Depends(get_shell_service)
 ) -> Response[ShellWriteResult]:
     if not request.session_id or request.session_id == "":
@@ -122,7 +122,7 @@ async def write_to_process(
     summary="关闭进程"
 )
 async def kill_process(
-        request: KillProcessRequest,
+        request: ShellKillRequest,
         shell_service: ShellService = Depends(get_shell_service)
 ) -> Response[ShellKillResult]:
     if not request.session_id or request.session_id == "":

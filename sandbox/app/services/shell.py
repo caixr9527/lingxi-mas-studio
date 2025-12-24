@@ -17,11 +17,11 @@ from typing import Dict, Optional, List
 
 from app.interfaces.errors import BadRequestException, AppException, NotFoundException
 from app.models import (
-    ShellExecResult,
+    ShellExecuteResult,
     Shell,
     ConsoleRecord,
     ShellWaitResult,
-    ShellViewResult,
+    ShellReadResult,
     ShellWriteResult,
     ShellKillResult
 )
@@ -172,7 +172,7 @@ class ShellService:
 
         return clean_console_records
 
-    async def wait_for_process(self, session_id: str, seconds: Optional[int] = None) -> ShellWaitResult:
+    async def wait_process(self, session_id: str, seconds: Optional[int] = None) -> ShellWaitResult:
         # 设置默认超时时间为60秒，如果传入的seconds为None或小于等于0，则使用默认值
         seconds = 60 if seconds is None or seconds <= 0 else seconds
         logger.debug(f"正在等待Shell进程, 会话: {session_id}, 超时为: {seconds}秒")
@@ -203,7 +203,7 @@ class ShellService:
             logger.error(f"等待Shell进程时错误: {str(e)}")
             raise AppException(f"等待Shell进程时错误: {str(e)}")
 
-    async def view_shell(self, session_id: str, console: bool = False) -> ShellViewResult:
+    async def read_shell_output(self, session_id: str, console: bool = False) -> ShellReadResult:
         """
         查看指定会话的Shell内容
         
@@ -229,7 +229,7 @@ class ShellService:
             console_records = []
 
         # 返回包含会话信息、清理后输出和控制台记录的结果对象
-        return ShellViewResult(
+        return ShellReadResult(
             session_id=session_id,
             output=clean_output,
             console_records=console_records,
@@ -240,7 +240,7 @@ class ShellService:
             session_id: str,
             exec_dir: str,
             command: str,
-    ) -> ShellExecResult:
+    ) -> ShellExecuteResult:
         """
         执行Shell命令
         :param session_id:
@@ -306,14 +306,14 @@ class ShellService:
             try:
                 logger.debug(f"正在等待会话中的命令执行完成,会话: {session_id}")
                 # 等待进程执行完成（最多5秒）
-                wait_result = await self.wait_for_process(session_id, seconds=5)
+                wait_result = await self.wait_process(session_id, seconds=5)
 
                 # 如果进程已完成，返回结果
                 if wait_result.returncode is not None:
                     logger.debug(f"Shell会话进程已结束, 代码: {wait_result.returncode}")
-                    view_result = await self.view_shell(session_id)
+                    view_result = await self.read_shell_output(session_id)
 
-                    return ShellExecResult(
+                    return ShellExecuteResult(
                         session_id=session_id,
                         command=command,
                         status="completed",
@@ -330,7 +330,7 @@ class ShellService:
                 pass
 
             # 默认返回运行中状态
-            return ShellExecResult(
+            return ShellExecuteResult(
                 session_id=session_id,
                 command=command,
                 status="running",
