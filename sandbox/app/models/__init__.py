@@ -7,7 +7,13 @@
 """
 from .file import (
     FileReadResult,
-    FileWriteResult
+    FileWriteResult,
+    FileReplaceResult,
+    FileSearchResult,
+    FileFindResult,
+    FileCheckResult,
+    FileDeleteResult,
+    FileUploadResult
 )
 from .shell import (
     ShellExecuteResult,
@@ -29,4 +35,10 @@ _all_ = [
     "ShellKillResult",
     "FileReadResult",
     "FileWriteResult",
+    "FileReplaceResult"
+    "FileSearchResult",
+    "FileFindResult",
+    "FileCheckResult",
+    "FileDeleteResult",
+    "FileUploadResult"
 ]

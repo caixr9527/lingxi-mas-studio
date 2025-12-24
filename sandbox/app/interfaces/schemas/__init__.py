@@ -9,6 +9,11 @@ from .base import Response
 from .file import (
     FileReadRequest,
     FileWriteRequest,
+    FileReplaceRequest,
+    FileSearchRequest,
+    FileFindRequest,
+    FileCheckRequest,
+    FileDeleteRequest
 )
 from .shell import (
     ShellExecutedRequest,
@@ -27,4 +32,9 @@ __all__ = [
     "ShellKillRequest",
     "FileReadRequest",
     "FileWriteRequest",
+    "FileReplaceRequest",
+    "FileSearchRequest",
+    "FileFindRequest",
+    "FileCheckRequest",
+    "FileDeleteRequest"
 ]
