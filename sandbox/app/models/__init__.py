@@ -25,6 +25,12 @@ from .shell import (
     ShellKillResult
 )
 
+from .supervisor import (
+    ProcessInfo,
+    SupervisorActionResult,
+    SupervisorTimeout
+)
+
 _all_ = [
     "ShellExecResult",
     "ConsoleRecord",
@@ -40,5 +46,8 @@ _all_ = [
     "FileFindResult",
     "FileCheckResult",
     "FileDeleteResult",
-    "FileUploadResult"
+    "FileUploadResult",
+    "ProcessInfo",
+    "SupervisorActionResult",
+    "SupervisorTimeout"
 ]

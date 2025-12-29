@@ -83,8 +83,8 @@ COPY supervisord.conf /etc/supervisor/conf.d/sandbox.conf
 EXPOSE 8081 9222 5900 5901
 
 # 额外的环境变量配置
-ENV CHROME_ARGS=""
-ENV UVI_ARGS=""
+ENV ENV_CHROME_ARGS=""
+ENV ENV_UVI_ARGS=""
 
 # 使用supervisor管理所有进程
 CMD ["supervisord", "-n", "-c", "/sandbox/supervisord.conf"]
