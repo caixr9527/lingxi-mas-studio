@@ -7,8 +7,10 @@
 """
 from .file import FileService
 from .shell import ShellService
+from .supervisorService import SupervisorService
 
 __all__ = [
     "ShellService",
-    "FileService"
+    "FileService",
+    "SupervisorService"
 ]

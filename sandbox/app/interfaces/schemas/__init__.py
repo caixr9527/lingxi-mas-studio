@@ -7,24 +7,37 @@
 """
 from .base import Response
 from .file import (
-    ReadFileRequest,
-    WriteFileRequest,
+    FileReadRequest,
+    FileWriteRequest,
+    FileReplaceRequest,
+    FileSearchRequest,
+    FileFindRequest,
+    FileCheckRequest,
+    FileDeleteRequest
 )
 from .shell import (
-    ExecCommandRequest,
-    ViewShellRequest,
-    WaitForProcessRequest,
-    WriteToProcessRequest,
-    KillProcessRequest,
+    ShellExecutedRequest,
+    ShellReadRequest,
+    ShellWaitRequest,
+    ShellWriteRequest,
+    ShellKillRequest,
 )
+
+from .supervisor import TimeoutRequest
 
 __all__ = [
     "Response",
-    "ExecCommandRequest",
-    "ViewShellRequest",
-    "WaitForProcessRequest",
-    "WriteToProcessRequest",
-    "KillProcessRequest",
-    "ReadFileRequest",
-    "WriteFileRequest",
+    "ShellExecutedRequest",
+    "ShellReadRequest",
+    "ShellWaitRequest",
+    "ShellWriteRequest",
+    "ShellKillRequest",
+    "FileReadRequest",
+    "FileWriteRequest",
+    "FileReplaceRequest",
+    "FileSearchRequest",
+    "FileFindRequest",
+    "FileCheckRequest",
+    "FileDeleteRequest",
+    "TimeoutRequest",
 ]

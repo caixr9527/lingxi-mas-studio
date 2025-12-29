@@ -8,23 +8,20 @@
 import asyncio
 import codecs
 import getpass
-import locale
 import logging
 import os
 import re
-import shutil
 import socket
-import sys
 import uuid
 from typing import Dict, Optional, List
 
 from app.interfaces.errors import BadRequestException, AppException, NotFoundException
 from app.models import (
-    ShellExecResult,
+    ShellExecuteResult,
     Shell,
     ConsoleRecord,
     ShellWaitResult,
-    ShellViewResult,
+    ShellReadResult,
     ShellWriteResult,
     ShellKillResult
 )
@@ -33,7 +30,10 @@ logger = logging.getLogger(__name__)
 
 
 class ShellService:
-    active_shells: Dict[str, Shell] = {}
+    active_shells: Dict[str, Shell]
+
+    def __init__(self) -> None:
+        self.active_shells = {}
 
     @classmethod
     def _get_display_path(cls, path: str) -> str:
@@ -63,7 +63,8 @@ class ShellService:
         display_dir = self._get_display_path(exec_dir)  # 获取显示路径
         return f"{username}@{hostname}:{display_dir}"  # 返回格式化后的PS1提示符
 
-    async def _create_process(self, exec_dir: str, command: str) -> asyncio.subprocess.Process:
+    @classmethod
+    async def _create_process(cls, exec_dir: str, command: str) -> asyncio.subprocess.Process:
         """
         创建异步子进程来执行Shell命令
         
@@ -72,20 +73,12 @@ class ShellService:
         :return: 异步子进程对象
         """
         logger.debug(f"正在创建Shell进程, 执行目录: {exec_dir}, 命令: {command}")
-
-        # 根据操作系统选择合适的Shell解释器
         shell_exec = None
-        if sys.platform != "win32":
-            # Unix/Linux/macOS系统优先选择bash，如果没有则选择zsh
-            if os.path.exists("/bin/bash"):
-                shell_exec = "/bin/bash"
-            elif os.path.exists("/bin/zsh"):
-                shell_exec = "/bin/zsh"
-        elif sys.platform == "win32":
-            # Windows系统优先选择PowerShell，如果没有则选择CMD
-            shell_exec = shutil.which("powershell")
-            if not shell_exec:
-                shell_exec = shutil.which("cmd")
+        # 根据操作系统选择合适的Shell解释器
+        if os.path.exists("/bin/bash"):
+            shell_exec = "/bin/bash"
+        elif os.path.exists("/bin/zsh"):
+            shell_exec = "/bin/zsh"
 
         # 创建异步子进程
         return await asyncio.create_subprocess_shell(
@@ -100,11 +93,7 @@ class ShellService:
 
     async def _start_output_reader(self, session_id: str, process: asyncio.subprocess.Process) -> None:
         logger.debug(f"正在启动Shell输出读取器, 会话: {session_id}")
-        if sys.platform == "win32":
-            encoding = "gb18030"  # gb18030比gbk支持的生僻字更多，且兼容gbk
-        else:
-            encoding = "utf-8"
-
+        encoding = "utf-8"
         # 创建增量编码器（解决字符被切断的问题）
         decoder = codecs.getincrementaldecoder(encoding)(errors="replace")
         shell = self.active_shells.get(session_id)
@@ -112,7 +101,7 @@ class ShellService:
         while True:
             if process.stdout:
                 try:
-                    # 从进程的标准输出中读取数据，每次最多读取4096字节
+                    # 从进程的标准输出中读取数据，每次最多读取4096个字节
                     buffer = await process.stdout.read(4096)
                     # 如果没有读取到数据，说明进程已经结束，跳出循环
                     if not buffer:
@@ -183,7 +172,7 @@ class ShellService:
 
         return clean_console_records
 
-    async def wait_for_process(self, session_id: str, seconds: Optional[int] = None) -> ShellWaitResult:
+    async def wait_process(self, session_id: str, seconds: Optional[int] = None) -> ShellWaitResult:
         # 设置默认超时时间为60秒，如果传入的seconds为None或小于等于0，则使用默认值
         seconds = 60 if seconds is None or seconds <= 0 else seconds
         logger.debug(f"正在等待Shell进程, 会话: {session_id}, 超时为: {seconds}秒")
@@ -214,7 +203,7 @@ class ShellService:
             logger.error(f"等待Shell进程时错误: {str(e)}")
             raise AppException(f"等待Shell进程时错误: {str(e)}")
 
-    async def view_shell(self, session_id: str, console: bool = False) -> ShellViewResult:
+    async def read_shell_output(self, session_id: str, console: bool = False) -> ShellReadResult:
         """
         查看指定会话的Shell内容
         
@@ -240,7 +229,7 @@ class ShellService:
             console_records = []
 
         # 返回包含会话信息、清理后输出和控制台记录的结果对象
-        return ShellViewResult(
+        return ShellReadResult(
             session_id=session_id,
             output=clean_output,
             console_records=console_records,
@@ -251,7 +240,7 @@ class ShellService:
             session_id: str,
             exec_dir: str,
             command: str,
-    ) -> ShellExecResult:
+    ) -> ShellExecuteResult:
         """
         执行Shell命令
         :param session_id:
@@ -317,14 +306,14 @@ class ShellService:
             try:
                 logger.debug(f"正在等待会话中的命令执行完成,会话: {session_id}")
                 # 等待进程执行完成（最多5秒）
-                wait_result = await self.wait_for_process(session_id, seconds=5)
+                wait_result = await self.wait_process(session_id, seconds=5)
 
                 # 如果进程已完成，返回结果
                 if wait_result.returncode is not None:
                     logger.debug(f"Shell会话进程已结束, 代码: {wait_result.returncode}")
-                    view_result = await self.view_shell(session_id)
+                    view_result = await self.read_shell_output(session_id)
 
-                    return ShellExecResult(
+                    return ShellExecuteResult(
                         session_id=session_id,
                         command=command,
                         status="completed",
@@ -341,7 +330,7 @@ class ShellService:
                 pass
 
             # 默认返回运行中状态
-            return ShellExecResult(
+            return ShellExecuteResult(
                 session_id=session_id,
                 command=command,
                 status="running",
@@ -389,12 +378,8 @@ class ShellService:
                 raise BadRequestException(f"会话: {session_id} 进程已结束")
 
             # 根据操作系统确定编码方式和换行符
-            if sys.platform == "win32":
-                encoding = locale.getpreferredencoding()
-                line_ending = "\r\n"
-            else:
-                encoding = "utf-8"
-                line_ending = "\n"
+            encoding = "utf-8"
+            line_ending = "\n"
 
             # 构造要发送的文本
             text_to_send = input_text

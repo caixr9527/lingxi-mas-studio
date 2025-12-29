@@ -33,13 +33,13 @@ class ShellWaitResult(BaseModel):
     returncode: int = Field(..., description="命令执行结果状态码")
 
 
-class ShellViewResult(BaseModel):
+class ShellReadResult(BaseModel):
     session_id: str = Field(..., description="目标 Shell 会话的唯一标识符")
     output: str = Field(..., description="命令执行结果输出")
     console_records: List[ConsoleRecord] = Field(default_factory=list, description="控制台记录列表")
 
 
-class ShellExecResult(BaseModel):
+class ShellExecuteResult(BaseModel):
     """Shell命令执行结果结构体"""
     session_id: str = Field(..., description="目标 Shell 会话的唯一标识符")
     command: str = Field(..., description="执行的 Shell 命令")

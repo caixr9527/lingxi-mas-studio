@@ -123,7 +123,7 @@ class BaseAgent(ABC):
 
                 # 将过滤后的消息添加到记忆存储中
                 await self._add_to_memery([filtered_message])
-
+                return filtered_message
             except Exception as e:
                 # 捕获异常，记录错误日志并等待重试间隔后继续重试
                 logger.error(f"调用大语言模型失败: {e}")

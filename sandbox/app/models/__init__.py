@@ -7,16 +7,28 @@
 """
 from .file import (
     FileReadResult,
-    FileWriteResult
+    FileWriteResult,
+    FileReplaceResult,
+    FileSearchResult,
+    FileFindResult,
+    FileCheckResult,
+    FileDeleteResult,
+    FileUploadResult
 )
 from .shell import (
-    ShellExecResult,
+    ShellExecuteResult,
     ConsoleRecord,
     Shell,
     ShellWaitResult,
-    ShellViewResult,
+    ShellReadResult,
     ShellWriteResult,
     ShellKillResult
+)
+
+from .supervisor import (
+    ProcessInfo,
+    SupervisorActionResult,
+    SupervisorTimeout
 )
 
 _all_ = [
@@ -29,4 +41,13 @@ _all_ = [
     "ShellKillResult",
     "FileReadResult",
     "FileWriteResult",
+    "FileReplaceResult"
+    "FileSearchResult",
+    "FileFindResult",
+    "FileCheckResult",
+    "FileDeleteResult",
+    "FileUploadResult",
+    "ProcessInfo",
+    "SupervisorActionResult",
+    "SupervisorTimeout"
 ]
