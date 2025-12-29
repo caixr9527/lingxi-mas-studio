@@ -13,7 +13,7 @@ import xmlrpc.client
 from typing import List, Any
 
 from app.interfaces.errors import BadRequestException, AppException
-from app.models import ProcessInfo
+from app.models import ProcessInfo, SupervisorActionResult
 
 logger = logging.getLogger(__name__)
 
@@ -77,3 +77,28 @@ class SupervisorService:
         except Exception as e:
             logger.error(f"获取Supervisor所有进程失败: {e}")
             raise AppException(msg=f"获取Supervisor所有进程失败: {e}")
+
+    async def stop_all_processes(self) -> SupervisorActionResult:
+        try:
+            result = await self._call_rpc(self.server.supervisor.stopAllProcesses)
+            return SupervisorActionResult(status="stopped", result=result)
+        except Exception as e:
+            logger.error(f"停止所有进程失败: {e}")
+            raise AppException(msg=f"停止所有进程失败: {e}")
+
+    async def shutdown(self) -> SupervisorActionResult:
+        try:
+            result = await self._call_rpc(self.server.supervisor.shutdown)
+            return SupervisorActionResult(status="shutdown", shutdown_result=result)
+        except Exception as e:
+            logger.error(f"关闭Supervisor失败: {e}")
+            raise AppException(msg=f"关闭Supervisor失败: {e}")
+
+    async def restart(self) -> SupervisorActionResult:
+        try:
+            stop_result = await self._call_rpc(self.server.supervisor.stopAllProcesses)
+            start_result = await self._call_rpc(self.server.supervisor.startAllProcesses)
+            return SupervisorActionResult(status="restarted", start_result=start_result, stop_result=stop_result)
+        except Exception as e:
+            logger.error(f"重启Supervisor失败: {e}")
+            raise AppException(msg=f"重启Supervisor失败: {e}")
