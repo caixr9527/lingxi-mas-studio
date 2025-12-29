@@ -12,7 +12,7 @@ from fastapi import APIRouter, Depends
 from app.interfaces.schemas import Response
 from app.interfaces.service_dependencies import get_supervisor_service
 from app.models import ProcessInfo
-from app.services.SupervisorService import SupervisorService
+from app.services import SupervisorService
 
 router = APIRouter(prefix="/supervisor", tags=["supervisor模块"])
 

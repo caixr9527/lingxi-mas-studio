@@ -24,8 +24,8 @@ RUN useradd -m -d /home/ubuntu -s /bin/bash ubuntu && \
 # 安装Python 3.10版本(非uv)
 RUN add-apt-repository ppa:deadsnakes/ppa && \
     apt-get update && \
-    apt-get install -y python3.12 python3.12-venv python3.12-dev python3-pip && \
-    update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.12 1 && \
+    apt-get install -y python3.10 python3.10-venv python3.10-dev python3-pip && \
+    update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 1 && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
@@ -83,8 +83,8 @@ COPY supervisord.conf /etc/supervisor/conf.d/sandbox.conf
 EXPOSE 8081 9222 5900 5901
 
 # 额外的环境变量配置
-ENV ENV_CHROME_ARGS=""
-ENV ENV_UVI_ARGS=""
+ENV CHROME_ARGS=""
+ENV UVI_ARGS=""
 
 # 使用supervisor管理所有进程
 CMD ["supervisord", "-n", "-c", "/sandbox/supervisord.conf"]
