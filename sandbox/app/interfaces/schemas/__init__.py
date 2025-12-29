@@ -23,6 +23,8 @@ from .shell import (
     ShellKillRequest,
 )
 
+from .supervisor import TimeoutRequest
+
 __all__ = [
     "Response",
     "ShellExecutedRequest",
@@ -36,5 +38,6 @@ __all__ = [
     "FileSearchRequest",
     "FileFindRequest",
     "FileCheckRequest",
-    "FileDeleteRequest"
+    "FileDeleteRequest",
+    "TimeoutRequest",
 ]
