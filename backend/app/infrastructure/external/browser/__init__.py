@@ -5,3 +5,8 @@
 @Author : caixiaorong01@outlook.com
 @File   : __init__.py.py
 """
+from .playwright_browser import PlaywrightBrowser
+
+__all__ = [
+    "PlaywrightBrowser",
+]
