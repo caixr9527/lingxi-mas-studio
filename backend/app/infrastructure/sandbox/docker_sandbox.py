@@ -17,6 +17,7 @@ from async_lru import alru_cache
 from docker.models.resource import Model
 
 from app.domain.external import Sandbox, Browser
+from app.domain.models import ToolResult
 from app.infrastructure.external.browser import PlaywrightBrowser
 from core.config import get_settings
 
@@ -171,7 +172,7 @@ class DockerSandbox(Sandbox):
     async def get(cls, id: str) -> Self:
         # 获取系统配置
         settings = get_settings()
-        
+
         # 如果配置了沙盒地址，则直接使用该地址创建沙盒实例
         if settings.sandbox_address:
             # 解析沙盒地址为IP地址
@@ -192,3 +193,61 @@ class DockerSandbox(Sandbox):
     async def get_browser(self) -> Browser:
         # todo 扩展llm
         return PlaywrightBrowser(self.cdp_url, llm=None)
+
+    async def ensure_sandbox(self) -> None:
+        """确保沙箱一定存在/服务全部都开启了才执行后续步骤"""
+        # 等待沙箱中所有服务启动完成
+        # 最多重试30次，每次间隔2秒
+        max_retries = 30
+        retry_interval = 2
+
+        for attempt in range(max_retries):
+            try:
+                # 发送请求获取supervisor状态
+                response = await self.client.get(f"{self._base_url}/api/supervisor/status")
+                response.raise_for_status()
+
+                # 解析响应结果
+                tool_result = ToolResult.from_sandbox(**response.json())
+
+                # 检查请求是否成功
+                if not tool_result.success:
+                    logger.warning(f"Supervisor进程状态监测失败: {tool_result.message}")
+                    await asyncio.sleep(retry_interval)
+                    continue
+
+                # 获取服务列表
+                services = tool_result.data or []
+                if not services:
+                    logger.warning(f"Supervisor进程中未发现任何服务")
+                    await asyncio.sleep(retry_interval)
+                    continue
+
+                # 检查所有服务是否都处于RUNNING状态
+                all_running = True
+                non_running_services = []
+                for service in services:
+                    service_name = service.get("name", "unknown")
+                    state_name = service.get("statename", "")
+
+                    # 如果服务状态不是RUNNING，则标记为未全部运行
+                    if state_name != "RUNNING":
+                        all_running = False
+                        non_running_services.append(f"{service_name}({state_name})")
+
+                # 如果所有服务都在运行，则返回
+                if all_running:
+                    logger.info("Sandbox Supervisor所有进程服务运行正常")
+                    return
+                else:
+                    # 否则继续等待并记录未运行的服务
+                    logger.info(f"正在等待Sandbox Supervisor进程服务运行, 还未运行的服务列表: {non_running_services}")
+                    await asyncio.sleep(retry_interval)
+            except Exception as e:
+                # 捕获异常并记录日志，然后继续重试
+                logger.warning(f"无法确认Sandbox Supervisor进程状态: {str(e)}")
+                await asyncio.sleep(retry_interval)
+
+        # 重试次数用尽后抛出异常
+        logger.error(f"在经过{max_retries}次尝试后仍无法确认Sandbox Supervisor状态信息")
+        raise Exception(f"在经过{max_retries}次尝试后仍无法确认Sandbox Supervisor状态信息")
