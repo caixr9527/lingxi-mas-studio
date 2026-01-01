@@ -6,10 +6,11 @@
 @File   : docker_sandbox.py
 """
 import asyncio
+import io
 import logging
 import socket
 import uuid
-from typing import Optional, Self
+from typing import Optional, Self, BinaryIO
 
 import docker
 import httpx
@@ -251,3 +252,190 @@ class DockerSandbox(Sandbox):
         # 重试次数用尽后抛出异常
         logger.error(f"在经过{max_retries}次尝试后仍无法确认Sandbox Supervisor状态信息")
         raise Exception(f"在经过{max_retries}次尝试后仍无法确认Sandbox Supervisor状态信息")
+
+    async def read_file(
+            self,
+            file_path: str,
+            start_line: Optional[int] = None,
+            end_line: Optional[int] = None,
+            sudo: bool = False,
+            max_length: int = 10000
+    ) -> ToolResult:
+        response = await self.client.post(
+            f"{self._base_url}/api/file/read-file",
+            json={
+                "filepath": file_path,
+                "start_line": start_line,
+                "end_line": end_line,
+                "sudo": sudo,
+                "max_length": max_length
+            }
+        )
+        return ToolResult.from_sandbox(**response.json())
+
+    async def write_file(
+            self,
+            file_path: str,
+            content: str,
+            append: bool = False,
+            leading_newline: bool = False,
+            trailing_newline: bool = False,
+            sudo: bool = False,
+    ) -> ToolResult:
+        response = await self.client.post(
+            f"{self._base_url}/api/file/write-file",
+            json={
+                "filepath": file_path,
+                "content": content,
+                "append": append,
+                "leading_newline": leading_newline,
+                "trailing_newline": trailing_newline,
+                "sudo": sudo,
+            }
+        )
+        return ToolResult.from_sandbox(**response.json())
+
+    async def replace_in_file(
+            self,
+            file_path: str,
+            old_text: str,
+            new_text: str,
+            sudo: bool = False,
+    ) -> ToolResult:
+        response = await self.client.post(
+            f"{self._base_url}/api/file/replace-in-file",
+            json={
+                "filepath": file_path,
+                "old_str": old_text,
+                "new_str": new_text,
+                "sudo": sudo,
+            }
+        )
+        return ToolResult.from_sandbox(**response.json())
+
+    async def search_in_file(self, file_path: str, regex: str, sudo: bool = False) -> ToolResult:
+        response = await self.client.post(
+            f"{self._base_url}/api/file/search-in-file",
+            json={
+                "filepath": file_path,
+                "regex": regex,
+                "sudo": sudo,
+            }
+        )
+        return ToolResult.from_sandbox(**response.json())
+
+    async def find_files(self, dir_path: str, glob_pattern: str) -> ToolResult:
+        response = await self.client.post(
+            f"{self._base_url}/api/file/find-files",
+            json={
+                "dir_path": dir_path,
+                "glob_pattern": glob_pattern,
+            }
+        )
+        return ToolResult.from_sandbox(**response.json())
+
+    async def list_files(self, dir_path: str) -> ToolResult:
+        return await self.find_files(dir_path=dir_path, glob_pattern="*")
+
+    async def check_file_exists(self, file_path: str) -> ToolResult:
+        response = await self.client.post(
+            f"{self._base_url}/api/file/check-file-exists",
+            json={
+                "filepath": file_path,
+            }
+        )
+        return ToolResult.from_sandbox(**response.json())
+
+    async def delete_file(self, file_path: str) -> ToolResult:
+        response = await self.client.post(
+            f"{self._base_url}/api/file/delete-file",
+            json={
+                "filepath": file_path,
+            }
+        )
+        return ToolResult.from_sandbox(**response.json())
+
+    async def upload_file(
+            self,
+            file_data: BinaryIO,
+            file_path: str,
+            filename: str = None,
+    ) -> ToolResult:
+        files = {
+            "file": (filename or "upload", file_data, "application/octet-stream")
+        }
+        data = {
+            "filepath": file_path,
+        }
+        response = await self.client.post(
+            f"{self._base_url}/api/file/upload-file",
+            data=data,
+            files=files,
+        )
+        return ToolResult.from_sandbox(**response.json())
+
+    async def download_file(self, file_path: str) -> BinaryIO:
+        response = await self.client.get(
+            f"{self._base_url}/api/file/download-file",
+            params={
+                "filepath": file_path,
+            }
+        )
+        response.raise_for_status()
+        return io.BytesIO(response.content)
+
+    async def exec_command(self, session_id: str, exec_dir: str, command: str) -> ToolResult:
+        response = await self.client.post(
+            f"{self._base_url}/api/shell/exec-command",
+            json={
+                "session_id": session_id,
+                "exec_dir": exec_dir,
+                "command": command,
+            }
+        )
+        return ToolResult.from_sandbox(**response.json())
+
+    async def read_shell_output(self, session_id: str, console: bool = False) -> ToolResult:
+        response = await self.client.post(
+            f"{self._base_url}/api/shell/read-shell-output",
+            json={
+                "session_id": session_id,
+                "console": console,
+            }
+        )
+        return ToolResult.from_sandbox(**response.json())
+
+    async def write_shell_input(
+            self,
+            session_id: str,
+            input_text: str,
+            press_enter: bool = True,
+    ) -> ToolResult:
+        response = await self.client.post(
+            f"{self._base_url}/api/shell/write-shell-input",
+            json={
+                "session_id": session_id,
+                "input_text": input_text,
+                "press_enter": press_enter,
+            }
+        )
+        return ToolResult.from_sandbox(**response.json())
+
+    async def wait_process(self, session_id: str, seconds: Optional[int] = None) -> ToolResult:
+        response = await self.client.post(
+            f"{self._base_url}/api/shell/wait-process",
+            json={
+                "session_id": session_id,
+                "seconds": seconds,
+            }
+        )
+        return ToolResult.from_sandbox(**response.json())
+
+    async def kill_process(self, session_id: str) -> ToolResult:
+        response = await self.client.post(
+            f"{self._base_url}/api/shell/kill-process",
+            json={
+                "session_id": session_id,
+            }
+        )
+        return ToolResult.from_sandbox(**response.json())
