@@ -169,7 +169,7 @@ async def upload_file(
     )
 
 
-@router.post(
+@router.get(
     path="/download-file",
     summary="下载文件",
     description="下载文件",
