@@ -111,7 +111,6 @@ async def get_mcp_servers(
     )
 
 
-
 @router.post(
     path="/mcp-servers",
     response_model=Response[Optional[Dict]],
@@ -162,3 +161,74 @@ async def set_mcp_server_enabled(
     """
     await app_config_service.set_mcp_server_enabled(server_name, enabled)
     return Response.success(msg="更新MCP服务器配置启用状态成功")
+
+
+@router.get(
+    path="/a2a-servers",
+    response_model=Response,
+    summary="获取A2A服务器配置信息",
+    description="获取A2A服务器配置信息"
+)
+async def get_a2a_servers(
+        app_config_service: AppConfigService = Depends(get_app_config_service)
+) -> Response:
+    """
+    获取A2A服务器配置信息
+    """
+    a2a_servers = await app_config_service.get_a2a_servers()
+    return Response.success(
+        msg="获取A2A服务器配置信息成功",
+        data=a2a_servers
+    )
+
+
+@router.post(
+    path="/a2a-servers",
+    response_model=Response,
+    summary="新增A2A服务器配置信息",
+    description="新增A2A服务器配置信息"
+)
+async def create_a2a_servers(
+        base_url: str = Body(...),
+        app_config_service: AppConfigService = Depends(get_app_config_service)
+) -> Response:
+    """
+    新增A2A服务器配置信息
+    """
+    pass
+    return Response.success(msg="新增A2A服务器配置信息成功")
+
+
+@router.post(
+    path="/a2a-servers/{a2a_id}/delete",
+    response_model=Response,
+    summary="删除A2A服务器配置信息",
+    description="删除A2A服务器配置信息"
+)
+async def delete_a2a_servers(
+        a2a_id: str,
+        app_config_service: AppConfigService = Depends(get_app_config_service)
+) -> Response:
+    """
+    删除A2A服务器配置信息
+    """
+    pass
+    return Response.success(msg="删除A2A服务器配置信息成功")
+
+
+@router.post(
+    path="/a2a-servers/{a2a_id}/enabled",
+    response_model=Response,
+    summary="启用A2A服务器配置",
+    description="启用A2A服务器配置"
+)
+async def set_a2a_server_enabled(
+        a2a_id: str,
+        enabled: bool = Body(...),
+        app_config_service: AppConfigService = Depends(get_app_config_service)
+) -> Response:
+    """
+    启用A2A服务器配置
+    """
+    pass
+    return Response.success(msg="更新A2A服务器配置启用状态成功")

@@ -5,6 +5,7 @@
 @Author : caixiaorong01@outlook.com
 @File   : app_config.py
 """
+import uuid
 from enum import Enum
 from typing import Any, Dict, Optional, List
 
@@ -67,11 +68,24 @@ class MCPConfig(BaseModel):
     model_config = ConfigDict(extra="allow", arbitrary_types_allowed=True)
 
 
+class A2AServerConfig(BaseModel):
+    """A2A服务器配置信息"""
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    base_url: str
+    enabled: bool = True
+
+
+class A2AConfig(BaseModel):
+    """A2A网络配置信息"""
+    a2a_servers: List[A2AServerConfig] = Field(default_factory=list)
+
+
 class AppConfig(BaseModel):
     """应用配置信息,包含Agent配置,LLM提供商,A2A网络,MCP服务器配置"""
     llm_config: LLMConfig
     agent_config: AgentConfig
     mcp_config: MCPConfig
+    a2a_config: A2AConfig
 
     # 允许传递额外的字段初始化
     model_config = ConfigDict(extra="allow")
