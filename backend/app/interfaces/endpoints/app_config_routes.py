@@ -224,7 +224,7 @@ async def delete_a2a_servers(
 )
 async def set_a2a_server_enabled(
         a2a_id: str,
-        enabled: bool = Body(...),
+        enabled: bool = Body(..., embed=True),
         app_config_service: AppConfigService = Depends(get_app_config_service)
 ) -> Response[Optional[Dict]]:
     """
