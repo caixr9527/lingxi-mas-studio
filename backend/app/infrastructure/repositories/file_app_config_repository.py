@@ -14,6 +14,7 @@ from filelock import FileLock
 
 from app.application.errors.exceptions import ServerError
 from app.domain.models import AppConfig, LLMConfig, AgentConfig, MCPConfig
+from app.domain.models.app_config import A2AConfig
 from app.domain.repositories import AppConfigRepository
 
 logger = logging.getLogger(__name__)
@@ -37,6 +38,7 @@ class FileAppConfigRepository(AppConfigRepository):
                 llm_config=LLMConfig(),
                 agent_config=AgentConfig(),
                 mcp_config=MCPConfig(),
+                a2a_config=A2AConfig(),
             )
             self.save(default_app_config)
 
