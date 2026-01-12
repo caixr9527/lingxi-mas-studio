@@ -5,11 +5,13 @@
 @Author : caixiaorong01@outlook.com
 @File   : __init__.py.py
 """
+from .app_config import ListMCPServerResponse, ListMCPServerItem, ListA2AServerItem, ListA2AServerResponse
 from .base import Response
-from .app_config import ListMCPServerResponse, ListMCPServerItem
 
 __all__ = [
     "Response",
     "ListMCPServerResponse",
-    "ListMCPServerItem"
+    "ListMCPServerItem",
+    "ListA2AServerItem",
+    "ListA2AServerResponse"
 ]

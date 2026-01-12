@@ -5,13 +5,16 @@
 @Author : caixiaorong01@outlook.com
 @File   : app_config_service.py
 """
+import uuid
 from typing import List
 
-from app.domain.models import AppConfig, LLMConfig, AgentConfig, MCPConfig
-from app.domain.repositories import AppConfigRepository
 from app.application.errors import NotFoundError
+from app.domain.models import AppConfig, LLMConfig, AgentConfig, MCPConfig
+from app.domain.models.app_config import A2AConfig, A2AServerConfig
+from app.domain.repositories import AppConfigRepository
 from app.domain.services.tools import MCPClientManager
-from app.interfaces.schemas import ListMCPServerItem
+from app.domain.services.tools.a2a import A2AClientManager
+from app.interfaces.schemas import ListMCPServerItem, ListA2AServerItem
 
 
 class AppConfigService:
@@ -171,3 +174,96 @@ class AppConfigService:
         self.app_config_repository.save(app_config)
         # 返回更新后的MCP配置
         return app_config.mcp_config
+
+    async def create_a2a_server(self, base_url: str) -> A2AConfig:
+        """根据传递的配置新增a2a服务器"""
+        app_config = await self._load_app_config()
+
+        # 往数据中新增a2a服务(在新增之前其实可以检测下当前Agent是否存在)
+        a2a_server_config = A2AServerConfig(
+            id=str(uuid.uuid4()),
+            base_url=base_url,
+            enabled=True,
+        )
+        app_config.a2a_config.a2a_servers.append(a2a_server_config)
+
+        self.app_config_repository.save(app_config)
+        return app_config.a2a_config
+
+    async def get_a2a_servers(self) -> List[ListA2AServerItem]:
+        """获取A2A服务列表"""
+        app_config = await self._load_app_config()
+
+        a2a_servers = []
+        a2a_client_manager = A2AClientManager(app_config.a2a_config)
+
+        try:
+            await a2a_client_manager.initialize()
+
+            agent_cards = a2a_client_manager.agent_cards
+
+            for id, agent_card in agent_cards.items():
+                a2a_servers.append(ListA2AServerItem(
+                    id=id,
+                    name=agent_card.get("name", ""),
+                    description=agent_card.get("description", ""),
+                    input_modes=agent_card.get("defaultInputModes", []),
+                    output_modes=agent_card.get("defaultOutputModes", []),
+                    streaming=agent_card.get("capabilities", {}).get("streaming", False),
+                    push_notifications=agent_card.get("capabilities", {}).get("push_notifications", False),
+                    enabled=agent_card.get("enabled", False),
+                ))
+        finally:
+            await a2a_client_manager.cleanup()
+
+        return a2a_servers
+
+    async def set_a2a_server_enabled(self, a2a_id: str, enabled: bool) -> A2AConfig:
+        """根据传递的id+enabled更新服务启用状态"""
+
+        # 加载应用配置
+        app_config = await self._load_app_config()
+
+        # 查找指定ID的A2A服务器索引
+        idx = None
+        for item_idx, item in enumerate(app_config.a2a_config.a2a_servers):
+            if item.id == a2a_id:
+                idx = item_idx
+                break
+
+        # 如果未找到对应的A2A服务器，抛出NotFoundError异常
+        if idx is None:
+            raise NotFoundError(f"该A2A服务[{a2a_id}]不存在，请核实后重试")
+
+        # 更新A2A服务器的启用状态
+        app_config.a2a_config.a2a_servers[idx].enabled = enabled
+
+        # 保存更新后的应用配置
+        self.app_config_repository.save(app_config)
+
+        # 返回更新后的A2A配置
+        return app_config.a2a_config
+
+    async def delete_a2a_server(self, a2a_id: str) -> A2AConfig:
+        """根据传递的id删除指定的a2a服务"""
+        app_config = await self._load_app_config()
+
+        # 查找指定ID的A2A服务器索引
+        idx = None
+        for item_idx, item in enumerate(app_config.a2a_config.a2a_servers):
+            if item.id == a2a_id:
+                idx = item_idx
+                break
+
+        # 如果未找到对应的A2A服务器，抛出NotFoundError异常
+        if idx is None:
+            raise NotFoundError(f"该A2A服务[{a2a_id}]不存在，请核实后重试")
+
+        # 根据索引删除A2A服务器配置
+        del app_config.a2a_config.a2a_servers[idx]
+
+        # 保存更新后的应用配置
+        self.app_config_repository.save(app_config)
+
+        # 返回更新后的A2A配置
+        return app_config.a2a_config

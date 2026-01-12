@@ -15,7 +15,7 @@ import httpx
 from app.application.errors import BadRequestError
 from app.domain.models import ToolResult
 from app.domain.models.app_config import A2AConfig
-from base import BaseTool, tool
+from .base import BaseTool, tool
 
 logger = logging.getLogger(__name__)
 
