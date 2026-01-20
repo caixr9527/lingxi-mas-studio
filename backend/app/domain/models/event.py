@@ -8,13 +8,13 @@
 import uuid
 from datetime import datetime
 from enum import Enum
-from typing import Literal, List, Any, Union, Optional, Dict
+from typing import Literal, List, Any, Union, Optional, Dict, Annotated
 
 from pydantic import BaseModel, Field
 
-from .tool_result import ToolResult
-from .plan import Plan, Step
 from .file import File
+from .plan import Plan, Step
+from .tool_result import ToolResult
 
 
 class PlanEventStatus(str, Enum):
@@ -113,13 +113,16 @@ class DoneEvent(BaseEvent):
     type: Literal["done"] = "done"
 
 
-Event = Union[
-    PlanEvent,
-    TitleEvent,
-    StepEvent,
-    MessageEvent,
-    ToolEvent,
-    WaitEvent,
-    ErrorEvent,
-    DoneEvent
+Event = Annotated[
+    Union[
+        PlanEvent,
+        TitleEvent,
+        StepEvent,
+        MessageEvent,
+        ToolEvent,
+        WaitEvent,
+        ErrorEvent,
+        DoneEvent
+    ],
+    Field(discriminator="type")
 ]

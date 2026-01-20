@@ -6,9 +6,6 @@
 @File   : __init__.py.py
 """
 from .app_config import AppConfig, LLMConfig, AgentConfig, MCPConfig, MCPTransport, MCPServerConfig
-from .health_status import HealthStatus
-from .memory import Memory
-from .plan import Plan, Step, ExecutionStatus
 from .event import (
     PlanEvent,
     TitleEvent,
@@ -22,10 +19,14 @@ from .event import (
     ToolEventStatus,
     PlanEventStatus,
 )
-from .tool_result import ToolResult
 from .file import File
+from .health_status import HealthStatus
+from .memory import Memory
 from .message import Message
+from .plan import Plan, Step, ExecutionStatus
 from .search import SearchResults, SearchResultItem
+from .session import Session, SessionStatus
+from .tool_result import ToolResult
 
 __all__ = [
     "AppConfig",
@@ -55,4 +56,6 @@ __all__ = [
     "Message",
     "SearchResults",
     "SearchResultItem",
+    "Session",
+    "SessionStatus",
 ]
