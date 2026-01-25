@@ -7,6 +7,7 @@
 """
 from .app_config import AppConfig, LLMConfig, AgentConfig, MCPConfig, MCPTransport, MCPServerConfig
 from .event import (
+    BaseEvent,
     PlanEvent,
     TitleEvent,
     StepEvent,
@@ -40,6 +41,7 @@ __all__ = [
     "Plan",
     "Step",
     "ExecutionStatus",
+    "BaseEvent",
     "PlanEvent",
     "TitleEvent",
     "StepEvent",
