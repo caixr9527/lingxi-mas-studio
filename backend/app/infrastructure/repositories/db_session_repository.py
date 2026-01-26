@@ -6,12 +6,13 @@
 @File   : db_session_repository.py
 """
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Optional, cast
 
-from sqlalchemy import select, delete, update
+from sqlalchemy import select, delete, update, func
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.domain.models import Session, SessionStatus
+from app.domain.models import Session, SessionStatus, BaseEvent, File, Memory
 from app.domain.repositories import SessionRepository
 from app.infrastructure.models import SessionModel
 
@@ -101,8 +102,101 @@ class DBSessionRepository(SessionRepository):
         if result.rowcount == 0:
             raise ValueError(f"会话[{session_id}]不存在，请核实后重试")
 
+    async def add_event(self, session_id: str, event: BaseEvent) -> None:
+        """往会话中新增事件"""
+        # 将事件对象转换为JSON格式的数据
+        event_data = event.model_dump(mode="json")
+
+        # 构建更新语句，将会话的events字段更新为原events列表加上新事件数据的新列表
+        # 使用coalesce函数处理events字段为空的情况，如果为空则视为空列表
+        stmt = (
+            update(SessionModel)
+            .where(SessionModel.id == session_id)
+            .values(
+                events=func.coalesce(SessionModel.events, cast([], JSONB)) + cast([event_data], JSONB),
+            )
+        )
+        # 执行更新操作
+        result = await self.db_session.execute(stmt)
+
+        # 检查是否有行被更新，如果没有则抛出异常
+        if result.rowcount == 0:
+            raise ValueError(f"会话[{session_id}]不存在，请核实后重试")
+
+    async def add_file(self, session_id: str, file: File) -> None:
+        """往会话中新增文件"""
+
+        """往会话中新增文件"""
+        # 将文件对象转换为JSON格式的数据
+        file_data = file.model_dump(mode="json")
+
+        # 构建更新语句，将文件添加到会话的files字段中
+        # 使用coalesce函数处理files字段为空的情况，如果为空则视为空列表
+        stmt = (
+            update(SessionModel)
+            .where(SessionModel.id == session_id)
+            .values(
+                files=func.coalesce(SessionModel.files, cast([], JSONB)) + cast([file_data], JSONB),
+            )
+        )
+        # 执行更新操作
+        result = await self.db_session.execute(stmt)
+
+        # 检查是否有行被更新，如果没有则抛出异常
+        if result.rowcount == 0:
+            raise ValueError(f"会话[{session_id}]不存在，请核实后重试")
+
+    async def remove_file(self, session_id: str, file_id: str) -> None:
+        """移除会话中的指定文件"""
+        # 查询会话记录并加锁，防止并发修改
+        stmt = select(SessionModel).where(SessionModel.id == session_id).with_for_update()
+        result = await self.db_session.execute(stmt)
+        record = result.scalar_one_or_none()
+
+        # 如果会话不存在，抛出异常
+        if not record:
+            raise ValueError(f"会话[{session_id}]不存在，请核实后重试")
+
+        # 如果会话没有文件，直接返回
+        if not record.files:
+            return
+
+        # 记录原始文件数量，用于判断是否真正删除了文件
+        original_length = len(record.files)
+
+        # 过滤掉要删除的文件，保留其他文件
+        new_files = [file for file in record.files if file.get("id") != file_id]
+
+        # 如果文件数量没有变化，说明要删除的文件不存在，直接返回
+        if len(new_files) == original_length:
+            return
+
+        # 更新会话记录中的文件列表
+        record.files = new_files
+
+    async def get_file_by_path(self, session_id: str, filepath: str) -> Optional[File]:
+        """根据文件路径获取文件信息"""
+        # 构建查询语句，根据session_id获取会话的所有文件列表
+        stmt = select(SessionModel.files).where(SessionModel.id == session_id)
+        # 执行查询操作
+        result = await self.db_session.execute(stmt)
+        # 获取查询结果
+        files = result.scalar_one_or_none()
+
+        # 如果没有找到文件列表，返回None
+        if not files:
+            return None
+
+        # 遍历文件列表，查找匹配指定文件路径的文件
+        for file in files:
+            if file.get("filepath", "") == filepath:
+                # 找到匹配的文件，将其转换为File对象并返回
+                return File(**file)
+
+        # 如果没有找到匹配的文件，返回None
+        return None
+
     async def update_status(self, session_id: str, status: SessionStatus) -> None:
-        """更新会话状态"""
         """更新会话状态"""
         # 构建更新语句，根据session_id更新对应的会话状态
         stmt = (
@@ -119,7 +213,6 @@ class DBSessionRepository(SessionRepository):
 
     async def update_unread_message_count(self, session_id: str, count: int) -> None:
         """更新会话的未读消息数"""
-        """更新会话的未读消息数"""
         # 构建更新语句，根据session_id更新对应的会话未读消息数量
         stmt = (
             update(SessionModel)
@@ -132,3 +225,85 @@ class DBSessionRepository(SessionRepository):
         # 检查是否有行被更新，如果没有则抛出异常
         if result.rowcount == 0:
             raise ValueError(f"会话[{session_id}]不存在，请核实后重试")
+
+    async def increment_unread_message_count(self, session_id: str) -> None:
+        """新增会话的未读消息数"""
+        # 构建更新语句，根据session_id增加对应的会话未读消息数量
+        stmt = (
+            update(SessionModel)
+            .where(SessionModel.id == session_id)
+            .values(
+                unread_message_count=func.coalesce(SessionModel.unread_message_count, 0) + 1,
+            )
+        )
+        # 执行更新操作
+        result = await self.db_session.execute(stmt)
+
+        # 检查是否有行被更新，如果没有则抛出异常
+        if result.rowcount == 0:
+            raise ValueError(f"会话[{session_id}]不存在，请核实后重试")
+
+    async def decrement_unread_message_count(self, session_id: str) -> None:
+        """将会话中的未读消息数-1"""
+        # 构建更新语句，将会话的未读消息数减1，但不能小于0
+        stmt = (
+            update(SessionModel)
+            .where(SessionModel.id == session_id)
+            .values(
+                unread_message_count=func.greatest(
+                    func.coalesce(SessionModel.unread_message_count, 0) - 1,
+                    0
+                )
+            )
+        )
+        # 执行更新操作
+        result = await self.db_session.execute(stmt)
+
+        # 检查是否有行被更新，如果没有则抛出异常
+        if result.rowcount == 0:
+            raise ValueError(f"会话[{session_id}]不存在，请核实后重试")
+
+    async def save_memory(self, session_id: str, agent_name: str, memory: Memory) -> None:
+        """存储或者更新会话中的记忆(字典直接覆盖)"""
+
+        # 将记忆对象转换为JSON格式数据
+        memory_data = memory.model_dump(mode="json")
+
+        # 创建补丁数据，以代理名称作为键，记忆数据作为值
+        patch_data = {agent_name: memory_data}
+
+        # 构建更新语句，将会话的记忆字段更新为原记忆字典与新记忆数据的合并
+        # 使用coalesce函数处理memories字段为空的情况，如果为空则视为默认空字典
+        stmt = (
+            update(SessionModel)
+            .where(SessionModel.id == session_id)
+            .values(
+                memories=func.coalesce(SessionModel.memories, cast({}, JSONB)) + cast(patch_data, JSONB),
+            )
+        )
+        # 执行更新操作
+        result = await self.db_session.execute(stmt)
+
+        # 检查是否有行被更新，如果没有则抛出异常
+        if result.rowcount == 0:
+            raise ValueError(f"会话[{session_id}]不存在，请核实后重试")
+
+    async def get_memory(self, session_id: str, agent_name: str) -> Memory:
+        """获取指定会话的agent记忆信息"""
+
+        # 构建查询语句，从会话中获取指定代理的记忆数据
+        stmt = (
+            select(SessionModel.memories[agent_name])
+            .where(SessionModel.id == session_id)
+        )
+        # 执行查询操作
+        result = await self.db_session.execute(stmt)
+        # 获取查询结果，如果不存在则返回None
+        memory_data = result.scalar_one_or_none()
+
+        # 如果找到了记忆数据，则将其转换为Memory对象并返回
+        if memory_data:
+            return Memory(**memory_data)
+
+        # 如果没有找到对应的记忆数据，返回一个空的记忆对象
+        return Memory(messages=[])
