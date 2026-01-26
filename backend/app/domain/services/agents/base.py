@@ -14,7 +14,6 @@ from typing import Optional, List, AsyncGenerator, Dict, Any
 from app.domain.external import LLM, JSONParser
 from app.domain.models import (
     AgentConfig,
-    Memory,
     Event,
     ToolEvent,
     ToolEventStatus,
@@ -22,7 +21,9 @@ from app.domain.models import (
     ErrorEvent,
     Message,
     MessageEvent,
+    Memory,
 )
+from app.domain.repositories import SessionRepository
 from app.domain.services.tools import BaseTool
 
 logger = logging.getLogger(__name__)
@@ -37,27 +38,29 @@ class BaseAgent(ABC):
     _tool_choice: Optional[str] = None  # 工具选择策略
 
     def __init__(self,
+                 session_id: str,
+                 session_repository: SessionRepository,
                  agent_config: AgentConfig,
                  llm: LLM,
-                 memory: Memory,
                  json_parser: JSONParser,
                  tools: List[BaseTool]) -> None:
         """
         :param agent_config: 智能体配置信息
         :param llm: 大语言模型实例
-        :param memory: 记忆存储实例
         :param json_parser: JSON解析器实例
         :param tools: 工具列表
         """
+        self._session_id = session_id
+        self._session_repository = session_repository
         self._agent_config = agent_config
         self._llm = llm
-        self._memory = memory
+        self._memory: Optional[Memory] = None
         self._json_parser = json_parser
         self._tools = tools
 
-    @property
-    def memory(self) -> Memory:
-        return self._memory
+    async def _ensure_memory(self) -> None:
+        if self._memory is None:
+            self._memory = await self._session_repository.get_memory(self._session_id, self.name)
 
     def _get_available_tools(self) -> List[Dict[str, Any]]:
         """获取可用的工具列表"""
@@ -91,7 +94,7 @@ class BaseAgent(ABC):
             try:
                 # 调用大语言模型
                 message = await self._llm.invoke(
-                    messages=messages,
+                    messages=self._memory.get_messages(),
                     tools=self._get_available_tools(),
                     response_format=response_format,
                     tool_choice=self._tool_choice,
@@ -158,6 +161,7 @@ class BaseAgent(ABC):
         :param messages: 需要添加到记忆存储的消息列表
         :return: None
         """
+        await self._ensure_memory()
         # 如果记忆存储为空，则先添加系统提示消息
         if self._memory.empty:
             self._memory.add_message({
@@ -168,12 +172,17 @@ class BaseAgent(ABC):
         # 将传入的消息列表添加到记忆存储中
         self._memory.add_messages(messages)
 
+        await self._session_repository.save_memory(self._session_id, self.name, self._memory)
+
     async def compact_memory(self) -> None:
+        await self._ensure_memory()
         self._memory.compact()
+        await self._session_repository.save_memory(self._session_id, self.name, self._memory)
 
     async def roll_back(self, message: Message) -> None:
         """状态回滚，确保Agent消息列表状态是正确的，用于发送新消息、暂停/停止任务、通知用户"""
         # 获取记忆存储中的最后一条消息
+        await self._ensure_memory()
         last_message = self._memory.get_last_message()
         # 检查最后一条消息是否存在且包含工具调用
         if (
@@ -199,6 +208,8 @@ class BaseAgent(ABC):
         else:
             # 否则执行记忆存储回滚操作
             self._memory.roll_back()
+
+        await self._session_repository.save_memory(self._session_id, self.name, self._memory)
 
     async def invoke(self, query: str, format: Optional[str] = None) -> AsyncGenerator[Event, None]:
         """
@@ -263,7 +274,7 @@ class BaseAgent(ABC):
                     "role": "tool",
                     "tool_call_id": tool_call_id,
                     "function_name": function_name,
-                    "content": result.model_dump(),
+                    "content": result.model_dump_json(),
                 })
 
             # 使用工具执行结果再次调用大语言模型
