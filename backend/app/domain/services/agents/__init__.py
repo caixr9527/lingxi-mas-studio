@@ -6,7 +6,11 @@
 @File   : __init__.py.py
 """
 from .base import BaseAgent
+from .planner import PlannerAgent
+from .react import ReActAgent
 
 __all__ = [
     "BaseAgent",
+    "PlannerAgent",
+    "ReActAgent",
 ]
