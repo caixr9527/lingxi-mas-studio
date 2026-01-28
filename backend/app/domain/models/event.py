@@ -14,6 +14,7 @@ from pydantic import BaseModel, Field
 
 from .file import File
 from .plan import Plan, Step
+from .search import SearchResultItem
 from .tool_result import ToolResult
 
 
@@ -77,12 +78,38 @@ class BrowserToolContent(BaseModel):
     screenshot: str  # 浏览器快照截图
 
 
+class SearchToolContent(BaseModel):
+    results: List[SearchResultItem]
+
+
+class ShellToolContent(BaseModel):
+    """Shell工具扩展内容"""
+    console: Any
+
+
+class FileToolContent(BaseModel):
+    """文件工具扩展内容"""
+    content: str
+
+
 class MCPToolContent(BaseModel):
     """MCPT工具扩展内容"""
     result: Any
 
 
-ToolContent = Union[BrowserToolContent, MCPToolContent]
+class A2AToolContent(BaseModel):
+    """A2A工具扩展内容"""
+    a2a_result: Any
+
+
+ToolContent = Union[
+    BrowserToolContent,
+    SearchToolContent,
+    ShellToolContent,
+    MCPToolContent,
+    FileToolContent,
+    A2AToolContent,
+]
 
 
 class ToolEvent(BaseEvent):
