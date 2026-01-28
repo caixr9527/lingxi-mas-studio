@@ -5,8 +5,12 @@
 @Author : caixiaorong01@outlook.com
 @File   : __init__.py.py
 """
+from .db_file_repository import DBFileRepository
+from .db_session_repository import DBSessionRepository
 from .file_app_config_repository import FileAppConfigRepository
 
 __all__ = [
-    "FileAppConfigRepository"
+    "FileAppConfigRepository",
+    "DBFileRepository",
+    "DBSessionRepository"
 ]

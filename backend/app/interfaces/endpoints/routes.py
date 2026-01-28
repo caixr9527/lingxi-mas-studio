@@ -7,7 +7,7 @@
 """
 from fastapi import APIRouter
 
-from app.interfaces.endpoints import status_routes, app_config_routes
+from app.interfaces.endpoints import status_routes, app_config_routes, file_routes
 
 
 def create_api_route() -> APIRouter:
@@ -16,6 +16,7 @@ def create_api_route() -> APIRouter:
 
     api_router.include_router(status_routes.router)
     api_router.include_router(app_config_routes.router)
+    api_router.include_router(file_routes.router)
     return api_router
 
 

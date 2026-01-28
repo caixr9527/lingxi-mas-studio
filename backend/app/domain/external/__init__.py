@@ -5,14 +5,15 @@
 @Author : caixiaorong01@outlook.com
 @File   : __init__.py.py
 """
-from .llm import LLM
-from .health_checker import HealthChecker
-from .task import Task, TaskRunner
-from .message_queue import MessageQueue
-from .json_parser import JSONParser
-from .search import SearchEngine
 from .browser import Browser
+from .file_storage import FileStorage
+from .health_checker import HealthChecker
+from .json_parser import JSONParser
+from .llm import LLM
+from .message_queue import MessageQueue
 from .sandbox import Sandbox
+from .search import SearchEngine
+from .task import Task, TaskRunner
 
 __all__ = [
     "LLM",
@@ -24,4 +25,5 @@ __all__ = [
     "SearchEngine",
     "Browser",
     "Sandbox",
+    "FileStorage",
 ]
