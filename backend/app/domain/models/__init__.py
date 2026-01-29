@@ -5,7 +5,15 @@
 @Author : caixiaorong01@outlook.com
 @File   : __init__.py.py
 """
-from .app_config import AppConfig, LLMConfig, AgentConfig, MCPConfig, MCPTransport, MCPServerConfig
+from .app_config import (
+    AppConfig,
+    LLMConfig,
+    AgentConfig,
+    MCPConfig,
+    MCPTransport,
+    MCPServerConfig,
+    A2AConfig,
+)
 from .event import (
     BaseEvent,
     PlanEvent,
@@ -19,6 +27,12 @@ from .event import (
     Event,
     ToolEventStatus,
     PlanEventStatus,
+    BrowserToolContent,
+    SearchToolContent,
+    ShellToolContent,
+    FileToolContent,
+    MCPToolContent,
+    A2AToolContent,
 )
 from .file import File
 from .health_status import HealthStatus
@@ -60,4 +74,11 @@ __all__ = [
     "SearchResultItem",
     "Session",
     "SessionStatus",
+    "A2AConfig",
+    "BrowserToolContent",
+    "SearchToolContent",
+    "ShellToolContent",
+    "FileToolContent",
+    "MCPToolContent",
+    "A2AToolContent",
 ]

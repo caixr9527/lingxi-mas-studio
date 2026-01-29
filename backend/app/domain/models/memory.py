@@ -47,8 +47,7 @@ class Memory(BaseModel):
         """压缩记忆"""
         for message in self.messages:
             if self.get_message_role(message) == "tool":
-                # todo
-                if message.get("function_name") in []:
+                if message.get("function_name") in ["browser_view", "browser_navigate"]:
                     message["content"] = "(removed)"
                     logger.debug(f"从记忆中删除了工具调用结果: {message['function_name']}")
 

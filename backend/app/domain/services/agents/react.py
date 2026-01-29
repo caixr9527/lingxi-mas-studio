@@ -8,8 +8,6 @@
 import logging
 from typing import AsyncGenerator
 
-from .base import BaseAgent
-from app.domain.services.prompts import SYSTEM_PROMPT, REACT_SYSTEM_PROMPT, EXECUTION_PROMPT, SUMMARIZE_PROMPT
 from app.domain.models import Plan, Step, Message, Event, ExecutionStatus, File
 from app.domain.models.event import (
     StepEventStatus,
@@ -20,6 +18,8 @@ from app.domain.models.event import (
     ToolEventStatus,
     WaitEvent
 )
+from app.domain.services.prompts import SYSTEM_PROMPT, REACT_SYSTEM_PROMPT, EXECUTION_PROMPT, SUMMARIZE_PROMPT
+from .base import BaseAgent
 
 logger = logging.getLogger(__name__)
 
@@ -66,7 +66,6 @@ class ReActAgent(BaseAgent):
                     if event.status == ToolEventStatus.CALLING:
                         yield MessageEvent(
                             role="assistant",
-                            # TODO: 需要完善消息内容处理逻辑
                             message=event.function_args.get("text", ""),
                         )
                     # 工具已调用：产出等待事件并结束当前步骤
