@@ -12,17 +12,10 @@ from pydantic import BaseModel, Field
 
 class File(BaseModel):
     """文件模型,记录上传的文件"""
-    # 文件唯一标识符，使用UUID生成默认值
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    # 原始文件名
-    file_name: str = ""
-    # 文件存储路径
-    filepath: str = ""
-    # 文件在存储系统中的键名
-    key: str = ""
-    # 文件扩展名
-    extension: str = ""
-    # 文件MIME类型
-    mime_type: str = ""
-    # 文件大小(字节)
-    size: int = 0
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))  # 文件id
+    filename: str = ""  # 文件名字
+    filepath: str = ""  # 文件路径
+    key: str = ""  # 腾讯云cos中的路径
+    extension: str = ""  # 扩展名
+    mime_type: str = ""  # mime-type类型
+    size: int = 0  # 文件大小，单位为字节

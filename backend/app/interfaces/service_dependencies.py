@@ -11,11 +11,11 @@ from functools import lru_cache
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.application.service import AppConfigService
-from app.application.service import StatusService
+from app.application.service import AppConfigService, FileService, StatusService
+from app.infrastructure.external.file_storage import CosFileStorage
 from app.infrastructure.external.health_checker import PostgresHealthChecker, RedisHealthChecker
-from app.infrastructure.repositories import FileAppConfigRepository
-from app.infrastructure.storage import get_db_session, RedisClient, get_redis_client
+from app.infrastructure.repositories import FileAppConfigRepository, DBFileRepository
+from app.infrastructure.storage import get_db_session, RedisClient, get_redis_client, Cos, get_cos
 from core.config import get_settings
 
 logger = logging.getLogger(__name__)
@@ -40,3 +40,23 @@ def get_status_service(
     postgres_checker = PostgresHealthChecker(db_session=db_session)
     redis_checker = RedisHealthChecker(redis_client=redis_client)
     return StatusService(checkers=[postgres_checker, redis_checker])
+
+
+@lru_cache()
+def get_file_service(
+        cos: Cos = Depends(get_cos),
+        db_session: AsyncSession = Depends(get_db_session),
+) -> FileService:
+    # 初始化文件仓库和文件存储桶
+    file_repository = DBFileRepository(db_session=db_session)
+    file_storage = CosFileStorage(
+        bucket=settings.cos_bucket,
+        cos=cos,
+        file_repository=file_repository
+    )
+
+    # 构建服务并返回
+    return FileService(
+        file_storage=file_storage,
+        file_repository=file_repository,
+    )

@@ -8,13 +8,14 @@
 import uuid
 from datetime import datetime
 from enum import Enum
-from typing import Literal, List, Any, Union, Optional, Dict
+from typing import Literal, List, Any, Union, Optional, Dict, Annotated
 
 from pydantic import BaseModel, Field
 
-from .tool_result import ToolResult
-from .plan import Plan, Step
 from .file import File
+from .plan import Plan, Step
+from .search import SearchResultItem
+from .tool_result import ToolResult
 
 
 class PlanEventStatus(str, Enum):
@@ -77,12 +78,38 @@ class BrowserToolContent(BaseModel):
     screenshot: str  # 浏览器快照截图
 
 
+class SearchToolContent(BaseModel):
+    results: List[SearchResultItem]
+
+
+class ShellToolContent(BaseModel):
+    """Shell工具扩展内容"""
+    console: Any
+
+
+class FileToolContent(BaseModel):
+    """文件工具扩展内容"""
+    content: str
+
+
 class MCPToolContent(BaseModel):
     """MCPT工具扩展内容"""
     result: Any
 
 
-ToolContent = Union[BrowserToolContent, MCPToolContent]
+class A2AToolContent(BaseModel):
+    """A2A工具扩展内容"""
+    a2a_result: Any
+
+
+ToolContent = Union[
+    BrowserToolContent,
+    SearchToolContent,
+    ShellToolContent,
+    MCPToolContent,
+    FileToolContent,
+    A2AToolContent,
+]
 
 
 class ToolEvent(BaseEvent):
@@ -113,13 +140,16 @@ class DoneEvent(BaseEvent):
     type: Literal["done"] = "done"
 
 
-Event = Union[
-    PlanEvent,
-    TitleEvent,
-    StepEvent,
-    MessageEvent,
-    ToolEvent,
-    WaitEvent,
-    ErrorEvent,
-    DoneEvent
+Event = Annotated[
+    Union[
+        PlanEvent,
+        TitleEvent,
+        StepEvent,
+        MessageEvent,
+        ToolEvent,
+        WaitEvent,
+        ErrorEvent,
+        DoneEvent
+    ],
+    Field(discriminator="type")
 ]

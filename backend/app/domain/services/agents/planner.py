@@ -8,9 +8,9 @@
 import logging
 from typing import Optional, AsyncGenerator
 
-from .base import BaseAgent
-from app.domain.services.prompts import SYSTEM_PROMPT, PLANNER_SYSTEM_PROMPT, CREATE_PLAN_PROMPT, UPDATE_PLAN_PROMPT
 from app.domain.models import Message, Event, MessageEvent, Plan, PlanEvent, PlanEventStatus, Step
+from app.domain.services.prompts import SYSTEM_PROMPT, PLANNER_SYSTEM_PROMPT, CREATE_PLAN_PROMPT, UPDATE_PLAN_PROMPT
+from .base import BaseAgent
 
 """
 多Agent系统/flow=PlannerAgent+ReActAgent
@@ -34,7 +34,7 @@ ReActAgent:
 logger = logging.getLogger(__name__)
 
 
-class Planner(BaseAgent):
+class PlannerAgent(BaseAgent):
     """规划者,用于将用户的任务/需求拆解为多个子任务"""
     name: str = "planner"
     _system_prompt: str = SYSTEM_PROMPT + PLANNER_SYSTEM_PROMPT

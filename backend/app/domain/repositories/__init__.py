@@ -6,7 +6,11 @@
 @File   : __init__.py.py
 """
 from .app_config_repository import AppConfigRepository
+from .file_repository import FileRepository
+from .session_repository import SessionRepository
 
 __all__ = [
     "AppConfigRepository",
+    "SessionRepository",
+    "FileRepository",
 ]

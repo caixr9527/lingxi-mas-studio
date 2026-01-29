@@ -7,7 +7,7 @@
 """
 import uuid
 from enum import Enum
-from typing import Any, List, Optional
+from typing import List, Optional
 
 from pydantic import BaseModel, Field
 
@@ -50,8 +50,6 @@ class Plan(BaseModel):
     message: str = ""  # 用户输入消息
     status: ExecutionStatus = ExecutionStatus.PENDING  # 状态
     error: Optional[str] = None
-
-    # todo result
 
     @property
     def done(self) -> bool:
