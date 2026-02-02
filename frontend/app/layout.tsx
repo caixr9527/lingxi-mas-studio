@@ -29,7 +29,7 @@ export default function RootLayout({
           {/*左侧 */}
           <LeftPanel />
           {/*右侧 */}
-          {children}
+          <div className="flex-1 bg-[#f8f8f7]">{children}</div>
         </SidebarProvider>
       </body>
     </html>
