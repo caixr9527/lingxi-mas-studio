@@ -1,5 +1,7 @@
-import type { Metadata } from "next";
-import "./globals.css";
+import { SidebarProvider } from "@/components/ui/sidebar"
+import { LeftPanel } from "@/components/left-panel"
+import type { Metadata } from "next"
+import "./globals.css"
 
 export const metadata: Metadata = {
   title: "灵析 - AI助手",
@@ -8,16 +10,28 @@ export const metadata: Metadata = {
   icons: {
     icon: "/icon.png",
   },
-};
+}
 
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode;
+  children: React.ReactNode
 }>) {
   return (
     <html lang="zh-CN">
-      <body>{children}</body>
+      <body>
+        <SidebarProvider
+          style={{
+            "--sidebar-width": "300px",
+            "--sidebar-width-icon": "300px",
+          }}
+        >
+          {/*左侧 */}
+          <LeftPanel />
+          {/*右侧 */}
+          {children}
+        </SidebarProvider>
+      </body>
     </html>
-  );
+  )
 }
