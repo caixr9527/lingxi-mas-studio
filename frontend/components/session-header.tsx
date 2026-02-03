@@ -25,7 +25,8 @@ export function SessionHeader() {
           <FileSearchCorner />
         </Button>
       </div>
-      {/* 右侧按钮 */}
+      {/* 右侧占位 */}
+      <div className="flex-1"></div>
     </header>
   )
 }
