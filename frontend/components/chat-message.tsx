@@ -5,6 +5,7 @@ import { CheckIcon, ChevronDown, Languages } from "lucide-react"
 import { AIIcon } from "./ai-icon"
 import { ToolUse } from "./tool-use"
 import { Button } from "./ui/button"
+import { AttachmentsMessage } from "./attachments-message"
 
 interface ChatMessageProps {
   className?: string
@@ -97,6 +98,6 @@ export function ChatMessage({ className, message }: ChatMessageProps) {
       </div>
     )
   } else if (message.type === "attachments") {
-    return <div>附件消息</div>
+    return <AttachmentsMessage role={message.role ?? "user"} />
   }
 }
