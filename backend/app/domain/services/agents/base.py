@@ -116,6 +116,9 @@ class BaseAgent(ABC):
 
                     # 过滤消息内容，只保留必要信息
                     filtered_message = {"role": "assistant", "content": message.get("content")}
+                    # 兼容Deepseek思考模型写法
+                    if message.get("reasoning_content"):
+                        filtered_message["reasoning_content"] = message.get("reasoning_content")
                     # 如果存在工具调用，只保留第一个工具调用
                     if message.get("tool_calls"):
                         filtered_message["tool_calls"] = message["tool_calls"][:1]

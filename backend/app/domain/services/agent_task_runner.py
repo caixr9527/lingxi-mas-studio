@@ -385,9 +385,9 @@ class AgentTaskRunner(TaskRunner):
                         )
                         return
 
-                # 检查输入流是否还有更多事件，如果没有则退出循环
-                if not await task.input_stream.is_empty():
-                    break
+                    # 检查输入流是否还有更多事件，如果没有则退出循环
+                    if not await task.input_stream.is_empty():
+                        break
 
             # 所有事件处理完成后，将会话状态更新为已完成
             await self._session_repository.update_status(session_id=self._session_id, status=SessionStatus.COMPLETED)
