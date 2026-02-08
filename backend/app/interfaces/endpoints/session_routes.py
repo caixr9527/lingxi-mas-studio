@@ -6,14 +6,16 @@
 @File   : session_routes.py
 """
 import logging
-from typing import Optional, Dict
+from datetime import datetime
+from typing import Optional, Dict, AsyncGenerator
 
 from fastapi import APIRouter, Depends
+from sse_starlette import EventSourceResponse, ServerSentEvent
 
-from app.application.service import SessionService
-from app.interfaces.schemas import CreateSessionResponse, ListSessionResponse, ListSessionItem
+from app.application.service import SessionService, AgentService
+from app.interfaces.schemas import CreateSessionResponse, ListSessionResponse, ListSessionItem, ChatRequest
 from app.interfaces.schemas import Response
-from app.interfaces.service_dependencies import get_session_service
+from app.interfaces.service_dependencies import get_session_service, get_agent_service
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/sessions", tags=["会话模块"])
@@ -92,3 +94,32 @@ async def delete_session(
     """根据传递的会话id删除指定任务会话"""
     await session_service.delete_session(session_id)
     return Response.success(msg="删除任务会话成功")
+
+
+@router.post(
+    path="/{session_id}/chat",
+    summary="向指定任务会话发起聊天请求",
+    description="向指定任务会话发起聊天请求"
+)
+async def chat(
+        session_id: str,
+        request: ChatRequest,
+        agent_service: AgentService = Depends(get_agent_service),
+) -> EventSourceResponse:
+    """根据传递的会话id+chat请求数据向指定会话发起聊天请求"""
+
+    async def event_generator() -> AsyncGenerator[ServerSentEvent, None]:
+        """定义事件生成器，用于配合EventSourceResponse生成流式响应数据"""
+        # 调用Agent服务发起聊天
+        async for event in agent_service.chat(
+                session_id=session_id,
+                message=request.message,
+                attachments=request.attachments,
+                latest_event_id=request.event_id,
+                timestamp=datetime.fromtimestamp(request.timestamp) if request.timestamp else None,
+        ):
+            # 将Agent事件转换为sse数据(因为普通的event没法通过流式事件传输)
+            # todo:这个位置还需要和获取所有流式数据的接口保持统一
+            yield ServerSentEvent(event=event.type, data=event.model_dump_json())
+
+    return EventSourceResponse(event_generator())

@@ -11,7 +11,7 @@ from functools import lru_cache
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.application.service import AppConfigService, FileService, StatusService
+from app.application.service import AppConfigService, FileService, StatusService, AgentService
 from app.application.service.session_service import SessionService
 from app.domain.repositories import SessionRepository
 from app.infrastructure.external.file_storage import CosFileStorage
@@ -72,3 +72,9 @@ def get_session_service(
     """获取会话服务"""
     logger.info("加载获取SessionService")
     return SessionService(session_repository=session_repository)
+
+
+@lru_cache()
+def get_agent_service() -> AgentService:
+    logger.info("加载获取AgentService")
+    return AgentService()
