@@ -7,11 +7,16 @@
 """
 from .app_config import ListMCPServerResponse, ListMCPServerItem, ListA2AServerItem, ListA2AServerResponse
 from .base import Response
+from .session import CreateSessionResponse, ListSessionResponse, ListSessionItem, ChatRequest
 
 __all__ = [
     "Response",
     "ListMCPServerResponse",
     "ListMCPServerItem",
     "ListA2AServerItem",
-    "ListA2AServerResponse"
+    "ListA2AServerResponse",
+    "CreateSessionResponse",
+    "ListSessionResponse",
+    "ListSessionItem",
+    "ChatRequest",
 ]

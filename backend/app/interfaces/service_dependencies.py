@@ -12,10 +12,13 @@ from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.application.service import AppConfigService, FileService, StatusService
+from app.application.service.session_service import SessionService
+from app.domain.repositories import SessionRepository
 from app.infrastructure.external.file_storage import CosFileStorage
 from app.infrastructure.external.health_checker import PostgresHealthChecker, RedisHealthChecker
 from app.infrastructure.repositories import FileAppConfigRepository, DBFileRepository
 from app.infrastructure.storage import get_db_session, RedisClient, get_redis_client, Cos, get_cos
+from app.interfaces.repository_dependencies import get_db_session_repository
 from core.config import get_settings
 
 logger = logging.getLogger(__name__)
@@ -60,3 +63,12 @@ def get_file_service(
         file_storage=file_storage,
         file_repository=file_repository,
     )
+
+
+@lru_cache()
+def get_session_service(
+        session_repository: SessionRepository = Depends(get_db_session_repository),
+) -> SessionService:
+    """获取会话服务"""
+    logger.info("加载获取SessionService")
+    return SessionService(session_repository=session_repository)
