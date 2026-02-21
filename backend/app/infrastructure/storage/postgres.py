@@ -12,6 +12,8 @@ from typing import Optional
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
 
+from app.domain.repositories import IUnitOfWork
+from app.infrastructure.repositories import DBUnitOfWork
 from core.config import get_settings
 
 logger = logging.getLogger(__name__)
@@ -96,3 +98,13 @@ async def get_db_session() -> AsyncSession:
         except Exception as _:
             await session.rollback()
             raise
+
+
+def get_session_factory():
+    db = get_postgres()
+    session_factory = db.session_factory
+    return session_factory
+
+
+def get_uow() -> IUnitOfWork:
+    return DBUnitOfWork(session_factory=get_session_factory())

@@ -6,7 +6,7 @@
 @File   : planner_react.py
 """
 import logging
-from typing import AsyncGenerator, Optional
+from typing import AsyncGenerator, Optional, Callable
 
 from app.domain.external import Sandbox, Browser, SearchEngine, LLM, JSONParser
 from app.domain.models import (
@@ -22,7 +22,7 @@ from app.domain.models import (
     MessageEvent,
     ExecutionStatus
 )
-from app.domain.repositories import SessionRepository
+from app.domain.repositories import IUnitOfWork
 from app.domain.services.agents import PlannerAgent, ReActAgent
 from app.domain.services.tools import (
     BrowserTool,
@@ -45,7 +45,7 @@ class PlannerReActFlow(BaseFlow):
             llm: LLM,
             agent_config: AgentConfig,
             session_id: str,
-            session_repository: SessionRepository,
+            uow_factory: Callable[[], IUnitOfWork],
             json_parser: JSONParser,
             browser: Browser,
             sandbox: Sandbox,
@@ -55,7 +55,8 @@ class PlannerReActFlow(BaseFlow):
     ):
         # 初始化会话ID和会话仓库，用于后续的交互和状态管理
         self._session_id = session_id
-        self._session_repository = session_repository
+        self._uow_factory = uow_factory
+        self._uow = uow_factory()
 
         # 设置流程初始状态为待机状态，并初始化计划为空
         self.status = FlowStatus.IDLE
@@ -75,7 +76,7 @@ class PlannerReActFlow(BaseFlow):
         # 创建规划代理实例，负责制定任务计划
         self.planner = PlannerAgent(
             session_id=self._session_id,
-            session_repository=self._session_repository,
+            uow_factory=self._uow_factory,
             agent_config=agent_config,
             llm=llm,
             tools=tools,
@@ -86,7 +87,7 @@ class PlannerReActFlow(BaseFlow):
         # 创建ReAct代理实例，负责执行计划并进行推理和行动
         self.react = ReActAgent(
             session_id=self._session_id,
-            session_repository=self._session_repository,
+            uow_factory=self._uow_factory,
             agent_config=agent_config,
             llm=llm,
             tools=tools,
@@ -97,7 +98,7 @@ class PlannerReActFlow(BaseFlow):
 
     async def invoke(self, message: Message) -> AsyncGenerator[BaseEvent, None]:
         # 获取当前会话信息，如果会话不存在则抛出异常
-        session = await self._session_repository.get_by_id(self._session_id)
+        session = await self._uow.session.get_by_id(self._session_id)
         if not session:
             raise ValueError(f"会话不存在: {self._session_id}, 请确认会话ID是否正确")
 
@@ -117,7 +118,7 @@ class PlannerReActFlow(BaseFlow):
             self.status = FlowStatus.EXECUTING
 
         # 更新会话状态为RUNNING
-        await self._session_repository.update_status(self._session_id, SessionStatus.RUNNING)
+        await self._uow.session.update_status(self._session_id, SessionStatus.RUNNING)
 
         # 获取最新的计划
         self.plan = session.get_latest_plan()
@@ -125,14 +126,14 @@ class PlannerReActFlow(BaseFlow):
 
         # 初始化step变量
         step = None
-        
+
         # 主循环：根据flow的不同状态执行相应操作
         while True:
             # IDLE状态：切换到PLANNING状态
             if self.status == FlowStatus.IDLE:
                 logger.info(f"Planner&ReAct流状态变更 {FlowStatus.IDLE} -> {FlowStatus.PLANNING}")
                 self.status = FlowStatus.PLANNING
-            
+
             # PLANNING状态：创建计划
             elif self.status == FlowStatus.PLANNING:
                 logger.info(f"Planner&ReAct流开始创建计划/Plan")
@@ -154,7 +155,7 @@ class PlannerReActFlow(BaseFlow):
                 if not self.plan or len(self.plan.steps) == 0:
                     logger.info(f"Planner&ReAct流计划或子步骤为空")
                     self.status = FlowStatus.COMPLETED
-            
+
             # EXECUTING状态：执行计划中的下一步
             elif self.status == FlowStatus.EXECUTING:
                 self.plan.status = ExecutionStatus.RUNNING
@@ -178,7 +179,7 @@ class PlannerReActFlow(BaseFlow):
 
                 # 切换到UPDATING状态，准备更新计划
                 self.status = FlowStatus.UPDATING
-            
+
             # UPDATING状态：更新计划
             elif self.status == FlowStatus.UPDATING:
                 logger.info(f"Planner&ReAct流开始更新计划")
@@ -188,7 +189,7 @@ class PlannerReActFlow(BaseFlow):
 
                 logger.info(f"Planner&ReAct流状态变更 {FlowStatus.UPDATING} -> {FlowStatus.EXECUTING}")
                 self.status = FlowStatus.EXECUTING
-            
+
             # SUMMARIZING状态：总结执行结果
             elif self.status == FlowStatus.SUMMARIZING:
                 logger.info(f"Planner&ReAct流开始总结")
@@ -198,7 +199,7 @@ class PlannerReActFlow(BaseFlow):
 
                 logger.info(f"Planner&ReAct流状态变更 {FlowStatus.SUMMARIZING} -> {FlowStatus.COMPLETED}")
                 self.status = FlowStatus.COMPLETED
-            
+
             # COMPLETED状态：完成流程
             elif self.status == FlowStatus.COMPLETED:
                 logger.info(f"Planner&ReAct流完成")

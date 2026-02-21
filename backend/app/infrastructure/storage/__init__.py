@@ -6,7 +6,7 @@
 @File   : __init__.py.py
 """
 from .cos import get_cos, Cos
-from .postgres import get_postgres, get_db_session
+from .postgres import get_postgres, get_db_session, get_uow
 from .redis import get_redis_client, RedisClient
 
 __all__ = [
@@ -16,4 +16,5 @@ __all__ = [
     "get_cos",
     "Cos",
     "RedisClient",
+    "get_uow",
 ]

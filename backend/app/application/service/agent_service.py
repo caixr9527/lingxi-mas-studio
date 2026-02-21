@@ -7,7 +7,7 @@
 """
 import logging
 from datetime import datetime
-from typing import AsyncGenerator, Optional, List, Type
+from typing import AsyncGenerator, Optional, List, Type, Callable
 
 from pydantic import TypeAdapter
 
@@ -26,7 +26,7 @@ from app.domain.models import (
     DoneEvent,
     WaitEvent
 )
-from app.domain.repositories import SessionRepository, FileRepository
+from app.domain.repositories import IUnitOfWork
 from app.domain.services.agent_task_runner import AgentTaskRunner
 
 logger = logging.getLogger(__name__)
@@ -36,7 +36,6 @@ class AgentService:
 
     def __init__(
             self,
-            session_repository: SessionRepository,
             llm: LLM,
             agent_config: AgentConfig,
             mcp_config: MCPConfig,
@@ -46,15 +45,15 @@ class AgentService:
             json_parser: JSONParser,
             search_engine: SearchEngine,
             file_storage: FileStorage,
-            file_repository: FileRepository,
+            uow_factory: Callable[[], IUnitOfWork]
     ) -> None:
-        self._session_repository = session_repository
         self._sandbox_cls = sandbox_cls
         self._task_cls = task_cls
         self._json_parser = json_parser
         self._search_engine = search_engine
         self._file_storage = file_storage
-        self._file_repository = file_repository
+        self._uow_factory = uow_factory
+        self._uow = uow_factory()
         self._mcp_config = mcp_config
         self._llm = llm
         self._agent_config = agent_config
@@ -79,7 +78,7 @@ class AgentService:
         if not sandbox:
             sandbox = await self._sandbox_cls.create()
             session.sandbox_id = sandbox.id
-            await self._session_repository.save(session=session)
+            await self._uow.session.save(session=session)
 
         # 获取沙箱中的浏览器实例
         browser = await sandbox.get_browser()
@@ -94,9 +93,8 @@ class AgentService:
             mcp_config=self._mcp_config,
             a2a_config=self._a2a_config,
             session_id=session.id,
-            session_repository=self._session_repository,
+            uow_factory=self._uow_factory,
             file_storage=self._file_storage,
-            file_repository=self._file_repository,
             json_parser=self._json_parser,
             browser=browser,
             search_engine=self._search_engine,
@@ -107,7 +105,7 @@ class AgentService:
         task = self._task_cls.create(task_runner=task_runner)
 
         session.task_id = task.id
-        await self._session_repository.save(session=session)
+        await self._uow.session.save(session=session)
         return task
 
     async def chat(
@@ -120,7 +118,7 @@ class AgentService:
     ) -> AsyncGenerator[BaseEvent, None]:
         try:
             # 获取会话信息
-            session = await self._session_repository.get_by_id(session_id=session_id)
+            session = await self._uow.session.get_by_id(session_id=session_id)
             if not session:
                 logger.error(f"会话{session_id}不存在")
                 raise RuntimeError(f"会话{session_id}不存在")
@@ -138,7 +136,7 @@ class AgentService:
                         raise RuntimeError(f"会话{session_id}的聊天请求失败: 创建任务失败")
 
                 # 更新会话的最新消息
-                await self._session_repository.update_latest_message(
+                await self._uow.session.update_latest_message(
                     session_id=session_id,
                     message=message,
                     timestamp=timestamp,
@@ -156,7 +154,7 @@ class AgentService:
                 message_event.id = event_id
 
                 # 将消息事件保存到会话历史中
-                await self._session_repository.add_event(session_id=session_id, event=message_event)
+                await self._uow.session.add_event(session_id=session_id, event=message_event)
 
                 # 启动任务执行
                 await task.invoke()
@@ -180,7 +178,7 @@ class AgentService:
                 logger.debug(f"会话{session_id},输出队列中已发现事件: {type(event).__name__}")
 
                 # 重置未读消息计数
-                await self._session_repository.update_unread_message_count(session_id=session_id, count=0)
+                await self._uow.session.update_unread_message_count(session_id=session_id, count=0)
 
                 # 返回事件给调用方
                 yield event
@@ -194,8 +192,8 @@ class AgentService:
             # 处理异常情况，记录错误日志并返回错误事件
             logger.error(f"会话{session_id}的聊天请求失败: {e}")
             event = ErrorEvent(error=str(e))
-            await self._session_repository.add_event(session_id, event)
+            await self._uow.session.add_event(session_id, event)
             yield event
         finally:
             # 确保最终重置未读消息计数
-            await self._session_repository.update_unread_message_count(session_id=session_id, count=0)
+            await self._uow.session.update_unread_message_count(session_id=session_id, count=0)

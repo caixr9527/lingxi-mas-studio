@@ -9,14 +9,14 @@ import logging
 import os.path
 import uuid
 from datetime import datetime
-from typing import Tuple, BinaryIO
+from typing import Tuple, BinaryIO, Callable
 
 from fastapi import UploadFile
 from starlette.concurrency import run_in_threadpool
 
 from app.domain.external import FileStorage
 from app.domain.models import File
-from app.domain.repositories import FileRepository
+from app.domain.repositories import IUnitOfWork
 from app.infrastructure.storage import Cos
 
 logger = logging.getLogger(__name__)
@@ -29,12 +29,13 @@ class CosFileStorage(FileStorage):
             self,
             bucket: str,
             cos: Cos,
-            file_repository: FileRepository,
+            uow_factory: Callable[[], IUnitOfWork],
     ) -> None:
         """构造函数，完成cos文件存储桶扩展初始化"""
         self.bucket = bucket
         self.cos = cos
-        self.file_repository = file_repository
+        self._uow_factory = uow_factory
+        self._uow = uow_factory()
 
     async def upload_file(self, upload_file: UploadFile) -> File:
         """根据传递的文件源将文件上传到腾讯云cos"""
@@ -70,7 +71,8 @@ class CosFileStorage(FileStorage):
                 mime_type=upload_file.content_type or "",
                 size=upload_file.size,
             )
-            await self.file_repository.save(file)
+            async with self._uow:
+                await self._uow.file.save(file)
 
             return file
         except Exception as e:
@@ -81,7 +83,8 @@ class CosFileStorage(FileStorage):
         """根据文件id查询数据并下载文件"""
         try:
             # 根据文件ID从数据库获取文件记录
-            file = await self.file_repository.get_by_id(file_id)
+            async with self._uow:
+                file = await self._uow.file.get_by_id(file_id)
             if not file:
                 raise ValueError(f"该文件不存在, 文件id: {file_id}")
 

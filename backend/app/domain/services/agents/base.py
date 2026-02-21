@@ -9,7 +9,7 @@ import asyncio
 import logging
 import uuid
 from abc import ABC
-from typing import Optional, List, AsyncGenerator, Dict, Any
+from typing import Optional, List, AsyncGenerator, Dict, Any, Callable
 
 from app.domain.external import LLM, JSONParser
 from app.domain.models import (
@@ -23,7 +23,7 @@ from app.domain.models import (
     MessageEvent,
     Memory,
 )
-from app.domain.repositories import SessionRepository
+from app.domain.repositories import IUnitOfWork
 from app.domain.services.tools import BaseTool
 
 logger = logging.getLogger(__name__)
@@ -39,7 +39,7 @@ class BaseAgent(ABC):
 
     def __init__(self,
                  session_id: str,
-                 session_repository: SessionRepository,
+                 uow_factory: Callable[[], IUnitOfWork],
                  agent_config: AgentConfig,
                  llm: LLM,
                  json_parser: JSONParser,
@@ -51,7 +51,8 @@ class BaseAgent(ABC):
         :param tools: 工具列表
         """
         self._session_id = session_id
-        self._session_repository = session_repository
+        self._uow_factory = uow_factory
+        self._uow = uow_factory()
         self._agent_config = agent_config
         self._llm = llm
         self._memory: Optional[Memory] = None
@@ -60,7 +61,7 @@ class BaseAgent(ABC):
 
     async def _ensure_memory(self) -> None:
         if self._memory is None:
-            self._memory = await self._session_repository.get_memory(self._session_id, self.name)
+            self._memory = await self._uow.session.get_memory(self._session_id, self.name)
 
     def _get_available_tools(self) -> List[Dict[str, Any]]:
         """获取可用的工具列表"""
@@ -175,12 +176,12 @@ class BaseAgent(ABC):
         # 将传入的消息列表添加到记忆存储中
         self._memory.add_messages(messages)
 
-        await self._session_repository.save_memory(self._session_id, self.name, self._memory)
+        await self._uow.session.save_memory(self._session_id, self.name, self._memory)
 
     async def compact_memory(self) -> None:
         await self._ensure_memory()
         self._memory.compact()
-        await self._session_repository.save_memory(self._session_id, self.name, self._memory)
+        await self._uow.session.save_memory(self._session_id, self.name, self._memory)
 
     async def roll_back(self, message: Message) -> None:
         """状态回滚，确保Agent消息列表状态是正确的，用于发送新消息、暂停/停止任务、通知用户"""
@@ -212,7 +213,7 @@ class BaseAgent(ABC):
             # 否则执行记忆存储回滚操作
             self._memory.roll_back()
 
-        await self._session_repository.save_memory(self._session_id, self.name, self._memory)
+        await self._uow.session.save_memory(self._session_id, self.name, self._memory)
 
     async def invoke(self, query: str, format: Optional[str] = None) -> AsyncGenerator[Event, None]:
         """
