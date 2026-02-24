@@ -9,7 +9,7 @@ import asyncio
 import io
 import logging
 import uuid
-from typing import List, AsyncGenerator, Callable
+from typing import List, AsyncGenerator, Callable, BinaryIO
 
 from fastapi import UploadFile
 from pydantic import TypeAdapter
@@ -166,6 +166,19 @@ class AgentTaskRunner(TaskRunner):
             # 记录同步附件到沙箱时发生的异常
             logger.exception(f"同步消息附件到沙箱失败: {e}")
 
+    @classmethod
+    def _get_stream_size(cls, f: BinaryIO) -> int:
+        # 获取当前文件指针位置
+        current_pos = f.tell()
+        # 将文件指针移动到文件末尾
+        f.seek(0, 2)
+        # 获取文件大小（当前位置即为文件大小）
+        size = f.tell()
+        # 将文件指针恢复到原来的位置
+        f.seek(current_pos)
+        # 返回文件大小
+        return size
+
     async def _sync_file_to_storage(self, filepath: str) -> File:
 
         try:
@@ -183,7 +196,7 @@ class AgentTaskRunner(TaskRunner):
             filename = filepath.split("/")[-1]
 
             # 创建UploadFile对象用于上传
-            upload_file = UploadFile(file=file_data, filename=filename)
+            upload_file = UploadFile(file=file_data, filename=filename, size=self._get_stream_size(file_data))
 
             # 将文件上传到文件存储系统
             await self._file_storage.upload_file(upload_file=upload_file)
@@ -250,7 +263,7 @@ class AgentTaskRunner(TaskRunner):
                             session_id=event.function_args["session_id"],
                             console=True
                         )
-                        event.tool_content = ShellToolContent(console=shell_result.data.get("console", []))
+                        event.tool_content = ShellToolContent(console=shell_result.data.get("console_records", []))
                     else:
                         # 如果没有session_id参数，设置默认值
                         event.tool_content = ShellToolContent(console="(No console)")
@@ -261,10 +274,9 @@ class AgentTaskRunner(TaskRunner):
                         filepath = event.function_args["filepath"]
                         # 从沙箱中读取文件内容
                         file_read_result = await self._sandbox.read_file(filepath)
-                        file_content: str = file_read_result.get("content", "")
+                        file_content: str = (file_read_result.data or {}).get("content", "")
                         event.tool_content = FileToolContent(content=file_content)
-                        # 将文件同步到沙存储 todo bug?
-                        # await self._sync_file_to_sandbox(file_id=filepath)
+                        # 将文件同步到沙存储
                         await self._sync_file_to_storage(filepath=filepath)
                     else:
                         # 如果没有提供文件路径参数，设置默认内容

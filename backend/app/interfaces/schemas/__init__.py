@@ -8,6 +8,8 @@
 from .app_config import ListMCPServerResponse, ListMCPServerItem, ListA2AServerItem, ListA2AServerResponse
 from .base import Response
 from .event import (
+    BaseEventData,
+    BaseSSEEvent,
     AgentSSEEvent,
     CommonSSEEvent,
     MessageSSEEvent,
@@ -18,6 +20,9 @@ from .event import (
     DoneSSEEvent,
     ErrorSSEEvent,
     WaitSSEEvent,
+    EventMapping,
+    EventMapper,
+
 )
 from .session import CreateSessionResponse, ListSessionResponse, ListSessionItem, ChatRequest
 
@@ -31,6 +36,8 @@ __all__ = [
     "ListSessionResponse",
     "ListSessionItem",
     "ChatRequest",
+    "BaseEventData",
+    "BaseSSEEvent",
     "AgentSSEEvent",
     "CommonSSEEvent",
     "MessageSSEEvent",
@@ -41,4 +48,6 @@ __all__ = [
     "DoneSSEEvent",
     "ErrorSSEEvent",
     "WaitSSEEvent",
+    "EventMapping",
+    "EventMapper",
 ]

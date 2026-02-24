@@ -207,7 +207,7 @@ class PlannerReActFlow(BaseFlow):
                 self.plan.status = ExecutionStatus.COMPLETED
                 self.status = FlowStatus.IDLE
                 # 发送完成事件
-                yield PlanEvent(status=ExecutionStatus.COMPLETED, plan=self.plan)
+                yield PlanEvent(status=PlanEventStatus.COMPLETED, plan=self.plan)
                 break
 
         # 发送结束事件

@@ -5,8 +5,9 @@
 @Author : caixiaorong01@outlook.com
 @File   : event.py
 """
+from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional, Any, Dict, Self, Type, Literal, List, Union
+from typing import Optional, Any, Dict, Self, Type, Literal, List, Union, get_args
 
 from pydantic import BaseModel, Field, ConfigDict
 
@@ -231,3 +232,82 @@ AgentSSEEvent = Union[
     ErrorSSEEvent,
     WaitSSEEvent,
 ]
+
+
+@dataclass
+class EventMapping:
+    """事件映射数据类，用于存储事件映射信息，涵盖流式事件类型、数据类、事件类型字符串"""
+    sse_event_class: Type[BaseSSEEvent]
+    data_class: Type[BaseEventData]
+    event_type: str
+
+
+class EventMapper:
+    """事件映射类，利用Python自身提供的自省机制，将业务逻辑中的Event转换成适合流式传输的AgentSSEEvent"""
+    # 缓存映射(type: EventMapping)
+    _cache_mapping: Optional[Dict[str, EventMapping]] = None
+
+    @staticmethod
+    def _get_event_type_mapping() -> Dict[str, EventMapping]:
+        """通过反射动态构建从事件类型字符串到AgentSSEEvent的映射"""
+        # 检查缓存是否已存在，如果存在则直接返回缓存的映射
+        if EventMapper._cache_mapping is not None:
+            return EventMapper._cache_mapping
+
+        # 获取所有AgentSSEEvent的联合类型参数
+        sse_event_classes = get_args(AgentSSEEvent)
+        mapping = {}
+
+        # 遍历每个SSE事件类，构建事件类型到EventMapping的映射
+        for sse_event_class in sse_event_classes:
+            # 跳过基础类BaseSSEEvent
+            if sse_event_class == BaseSSEEvent:
+                continue
+
+            # 检查类是否有注解且包含'event'字段
+            if hasattr(sse_event_class, "__annotations__") and "event" in sse_event_class.__annotations__:
+                event_field = sse_event_class.__annotations__["event"]
+
+                # 确保event字段有类型参数且至少有一个参数
+                if hasattr(event_field, "__args__") and len(event_field.__args__) > 0:
+                    event_type = event_field.__args__[0]
+
+                    # 尝试获取'data'字段的类型注解
+                    data_class = None
+                    if hasattr(sse_event_class, "__annotations__") and "data" in sse_event_class.__annotations__:
+                        data_class = sse_event_class.__annotations__["data"]
+
+                    # 构建并存储EventMapping对象
+                    mapping[event_type] = EventMapping(
+                        sse_event_class=sse_event_class,
+                        data_class=data_class,
+                        event_type=event_type
+                    )
+
+        # 缓存映射结果并返回
+        EventMapper._cache_mapping = mapping
+        return mapping
+
+    @staticmethod
+    def event_to_sse_event(event: Event) -> AgentSSEEvent:
+        """将领域事件转换为Agent流式事件模型"""
+        # 获取事件类型到SSE事件类的映射关系
+        event_type_mapping = EventMapper._get_event_type_mapping()
+
+        # 根据事件类型查找对应的事件映射配置
+        event_mapping = event_type_mapping.get(event.type)
+
+        # 如果找到匹配的事件映射，则使用对应SSE事件类构建流式事件
+        if event_mapping:
+            sse_event = event_mapping.sse_event_class.from_event(event)
+            return sse_event
+
+        # 如果未找到匹配的事件映射，则使用通用SSE事件类进行转换
+        return CommonSSEEvent.from_event(event)
+
+    @staticmethod
+    def events_to_sse_events(events: List[Event]) -> List[AgentSSEEvent]:
+        """将领域事件模型列表转换为SSE流式事件列表"""
+        return list(filter(lambda x: x is not None, [
+            EventMapper.event_to_sse_event(event) for event in events
+        ]))

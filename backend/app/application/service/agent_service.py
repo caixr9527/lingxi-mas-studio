@@ -128,8 +128,8 @@ class AgentService:
 
             # 处理用户发送的消息
             if message:
-                # 如果会话未处于运行状态，则创建新任务
-                if session.status != SessionStatus.RUNNING:
+                # 如果会话未处于运行状态，或者没有任务，则创建新任务
+                if session.status != SessionStatus.RUNNING or task is None:
                     task = await self._create_task(session)
                     if not task:
                         logger.error(f"会话{session_id}的聊天请求失败: 创建任务失败")
