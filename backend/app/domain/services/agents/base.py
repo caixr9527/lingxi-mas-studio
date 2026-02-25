@@ -61,7 +61,8 @@ class BaseAgent(ABC):
 
     async def _ensure_memory(self) -> None:
         if self._memory is None:
-            self._memory = await self._uow.session.get_memory(self._session_id, self.name)
+            async with self._uow:
+                self._memory = await self._uow.session.get_memory(self._session_id, self.name)
 
     def _get_available_tools(self) -> List[Dict[str, Any]]:
         """获取可用的工具列表"""
@@ -175,13 +176,14 @@ class BaseAgent(ABC):
 
         # 将传入的消息列表添加到记忆存储中
         self._memory.add_messages(messages)
-
-        await self._uow.session.save_memory(self._session_id, self.name, self._memory)
+        async with self._uow:
+            await self._uow.session.save_memory(self._session_id, self.name, self._memory)
 
     async def compact_memory(self) -> None:
         await self._ensure_memory()
         self._memory.compact()
-        await self._uow.session.save_memory(self._session_id, self.name, self._memory)
+        async with self._uow:
+            await self._uow.session.save_memory(self._session_id, self.name, self._memory)
 
     async def roll_back(self, message: Message) -> None:
         """状态回滚，确保Agent消息列表状态是正确的，用于发送新消息、暂停/停止任务、通知用户"""
@@ -212,8 +214,8 @@ class BaseAgent(ABC):
         else:
             # 否则执行记忆存储回滚操作
             self._memory.roll_back()
-
-        await self._uow.session.save_memory(self._session_id, self.name, self._memory)
+        async with self._uow:
+            await self._uow.session.save_memory(self._session_id, self.name, self._memory)
 
     async def invoke(self, query: str, format: Optional[str] = None) -> AsyncGenerator[Event, None]:
         """

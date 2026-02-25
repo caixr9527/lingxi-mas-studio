@@ -24,7 +24,19 @@ from .event import (
     EventMapper,
 
 )
-from .session import CreateSessionResponse, ListSessionResponse, ListSessionItem, ChatRequest
+from .session import (
+    CreateSessionResponse,
+    ListSessionResponse,
+    ListSessionItem,
+    ChatRequest,
+    GetSessionResponse,
+    GetSessionFilesResponse,
+    FileReadRequest,
+    FileReadResponse,
+    ShellReadRequest,
+    ConsoleRecord,
+    ShellReadResponse
+)
 
 __all__ = [
     "Response",
@@ -50,4 +62,11 @@ __all__ = [
     "WaitSSEEvent",
     "EventMapping",
     "EventMapper",
+    "GetSessionResponse",
+    "GetSessionFilesResponse",
+    "FileReadRequest",
+    "FileReadResponse",
+    "ShellReadRequest",
+    "ConsoleRecord",
+    "ShellReadResponse"
 ]

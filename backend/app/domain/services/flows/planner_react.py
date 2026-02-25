@@ -98,7 +98,8 @@ class PlannerReActFlow(BaseFlow):
 
     async def invoke(self, message: Message) -> AsyncGenerator[BaseEvent, None]:
         # 获取当前会话信息，如果会话不存在则抛出异常
-        session = await self._uow.session.get_by_id(self._session_id)
+        async with self._uow:
+            session = await self._uow.session.get_by_id(self._session_id)
         if not session:
             raise ValueError(f"会话不存在: {self._session_id}, 请确认会话ID是否正确")
 
@@ -118,7 +119,8 @@ class PlannerReActFlow(BaseFlow):
             self.status = FlowStatus.EXECUTING
 
         # 更新会话状态为RUNNING
-        await self._uow.session.update_status(self._session_id, SessionStatus.RUNNING)
+        async with self._uow:
+            await self._uow.session.update_status(self._session_id, SessionStatus.RUNNING)
 
         # 获取最新的计划
         self.plan = session.get_latest_plan()

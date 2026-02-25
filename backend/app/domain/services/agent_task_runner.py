@@ -104,7 +104,8 @@ class AgentTaskRunner(TaskRunner):
         # 设置事件ID
         event.id = event_id
         # 将事件添加到会话存储中
-        await self._uow.session.add_event(self._session_id, event)
+        async with self._uow:
+            await self._uow.session.add_event(self._session_id, event)
 
     @classmethod
     async def _pop_event(cls, task: Task) -> Event:
@@ -138,7 +139,8 @@ class AgentTaskRunner(TaskRunner):
             # 如果上传成功，则更新文件的存储路径并保存到文件仓库
             if tool_result.success:
                 file.filepath = filepath
-                await self._uow.file.save(file=file)
+                async with self._uow:
+                    await self._uow.file.save(file=file)
                 return file
         except Exception as e:
             # 记录同步文件到沙箱时出现的异常
@@ -158,7 +160,8 @@ class AgentTaskRunner(TaskRunner):
                         # 添加到附件列表
                         attachments.append(file)
                         # 将文件添加到会话存储中
-                        await self._uow.session.add_file(session_id=self._session_id, file=file)
+                        async with self._uow:
+                            await self._uow.session.add_file(session_id=self._session_id, file=file)
 
                 # 更新事件中的附件列表为已同步的文件
                 event.attachments = attachments
@@ -183,14 +186,16 @@ class AgentTaskRunner(TaskRunner):
 
         try:
             # 根据文件路径从会话存储中获取文件信息
-            file = await self._uow.session.get_file_by_path(session_id=self._session_id, filepath=filepath)
+            async with self._uow:
+                file = await self._uow.session.get_file_by_path(session_id=self._session_id, filepath=filepath)
 
             # 从沙箱环境中下载文件数据
             file_data = await self._sandbox.download_file(file_path=filepath)
 
             # 如果文件存在，则从会话存储中移除该文件
             if file:
-                await self._uow.session.remove_file(session_id=self._session_id, file_id=file.filepath)
+                async with self._uow:
+                    await self._uow.session.remove_file(session_id=self._session_id, file_id=file.filepath)
 
             # 从路径中提取文件名
             filename = filepath.split("/")[-1]
@@ -205,7 +210,8 @@ class AgentTaskRunner(TaskRunner):
             file.filepath = filepath
 
             # 将文件重新添加到会话存储中
-            await self._uow.session.add_file(session_id=self._session_id, file=file)
+            async with self._uow:
+                await self._uow.session.add_file(session_id=self._session_id, file=file)
 
             # 返回同步后的文件对象
             return file
@@ -379,21 +385,24 @@ class AgentTaskRunner(TaskRunner):
                     # 根据事件类型更新会话状态或信息
                     if isinstance(event, TitleEvent):
                         # 更新会话标题
-                        await self._uow.session.update_title(session_id=self._session_id, title=event.title)
+                        async with self._uow:
+                            await self._uow.session.update_title(session_id=self._session_id, title=event.title)
                     elif isinstance(event, MessageEvent):
                         # 更新会话最新消息和未读消息计数
-                        await self._uow.session.update_latest_message(
-                            session_id=self._session_id,
-                            message=event.message,
-                            timestamp=event.created_at,
-                        )
-                        await self._uow.session.increment_unread_message_count(session_id=self._session_id)
+                        async with self._uow:
+                            await self._uow.session.update_latest_message(
+                                session_id=self._session_id,
+                                message=event.message,
+                                timestamp=event.created_at,
+                            )
+                            await self._uow.session.increment_unread_message_count(session_id=self._session_id)
                     elif isinstance(event, WaitEvent):
                         # 如果是等待事件，将会话状态设置为等待并返回
-                        await self._uow.session.update_status(
-                            session_id=self._session_id,
-                            status=SessionStatus.WAITING
-                        )
+                        async with self._uow:
+                            await self._uow.session.update_status(
+                                session_id=self._session_id,
+                                status=SessionStatus.WAITING
+                            )
                         return
 
                     # 检查输入流是否还有更多事件，如果没有则退出循环
@@ -401,17 +410,20 @@ class AgentTaskRunner(TaskRunner):
                         break
 
             # 所有事件处理完成后，将会话状态更新为已完成
-            await self._uow.session.update_status(session_id=self._session_id, status=SessionStatus.COMPLETED)
+            async with self._uow:
+                await self._uow.session.update_status(session_id=self._session_id, status=SessionStatus.COMPLETED)
         except asyncio.CancelledError:
             # 处理任务被取消的情况
             logger.info(f"AgentTaskRunner任务运行取消")
             await self._put_and_add_event(task=task, event=DoneEvent())
-            await self._uow.session.update_status(session_id=self._session_id, status=SessionStatus.COMPLETED)
+            async with self._uow:
+                await self._uow.session.update_status(session_id=self._session_id, status=SessionStatus.COMPLETED)
         except Exception as e:
             # 处理其他异常情况
             logger.exception(f"AgentTaskRunner运行出错: {str(e)}")
             await self._put_and_add_event(task=task, event=ErrorEvent(error=f"AgentTaskRunner出错: {str(e)}"))
-            await self._uow.session.update_status(session_id=self._session_id, status=SessionStatus.COMPLETED)
+            async with self._uow:
+                await self._uow.session.update_status(session_id=self._session_id, status=SessionStatus.COMPLETED)
 
     async def destroy(self) -> None:
         logger.info(f"开始销毁并释放资源")

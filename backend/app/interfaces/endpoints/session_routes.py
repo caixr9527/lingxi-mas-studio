@@ -5,6 +5,7 @@
 @Author : caixiaorong01@outlook.com
 @File   : session_routes.py
 """
+import asyncio
 import logging
 from datetime import datetime
 from typing import Optional, Dict, AsyncGenerator
@@ -12,13 +13,23 @@ from typing import Optional, Dict, AsyncGenerator
 from fastapi import APIRouter, Depends
 from sse_starlette import EventSourceResponse, ServerSentEvent
 
+from app.application.errors import NotFoundError
 from app.application.service import SessionService, AgentService
-from app.interfaces.schemas import CreateSessionResponse, ListSessionResponse, ListSessionItem, ChatRequest, EventMapper
+from app.interfaces.schemas import (
+    CreateSessionResponse,
+    ListSessionResponse,
+    ListSessionItem,
+    ChatRequest,
+    EventMapper,
+    GetSessionResponse
+)
 from app.interfaces.schemas import Response
 from app.interfaces.service_dependencies import get_session_service, get_agent_service
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/sessions", tags=["会话模块"])
+# 流式获取会话详情睡眠间隔
+SESSION_SLEEP_INTERVAL = 5
 
 
 @router.post(
@@ -36,6 +47,48 @@ async def create_session(
         msg="创建任务会话成功",
         data=CreateSessionResponse(session_id=session.id)
     )
+
+
+@router.post(
+    path="/stream",
+    summary="流式获取所有会话基础信息列表",
+    description="间隔指定时间流式获取所有会话基础信息列表",
+)
+async def stream_sessions(
+        session_service: SessionService = Depends(get_session_service),
+) -> EventSourceResponse:
+    """间隔指定时间流式获取所有会话基础信息列表"""
+
+    async def event_generator() -> AsyncGenerator[ServerSentEvent, None]:
+        """定义一个异步迭代器，用于获取所有会话列表"""
+        while True:
+            # 获取所有会话信息
+            sessions = await session_service.get_all_sessions()
+
+            # 将会话信息转换为ListSessionItem对象列表
+            session_items = [
+                ListSessionItem(
+                    session_id=session.id,
+                    title=session.title,
+                    latest_message=session.latest_message,
+                    latest_message_at=session.latest_message_at,
+                    status=session.status,
+                    unread_message_count=session.unread_message_count,
+                )
+                for session in sessions
+            ]
+
+            # 通过ServerSentEvent发送会话列表数据
+            yield ServerSentEvent(
+                event="sessions",
+                data=ListSessionResponse(sessions=session_items).model_dump_json(),
+            )
+
+            # 等待指定时间间隔后继续下一次循环
+            await asyncio.sleep(SESSION_SLEEP_INTERVAL)
+
+    # 返回EventSourceResponse对象，用于流式传输会话列表数据
+    return EventSourceResponse(event_generator())
 
 
 @router.get(
@@ -127,3 +180,28 @@ async def chat(
                 )
 
     return EventSourceResponse(event_generator())
+
+
+@router.get(
+    path="/{session_id}",
+    response_model=Response[GetSessionResponse],
+    summary="获取指定会话详情信息",
+    description="根据传递的会话id获取该会话的对话详情",
+)
+async def get_session(
+        session_id: str,
+        session_service: SessionService = Depends(get_session_service),
+) -> Response[GetSessionResponse]:
+    """传递指定会话id获取该会话的对话详情"""
+    session = await session_service.get_session(session_id)
+    if not session:
+        raise NotFoundError("该会话不存在，请核实后重试")
+    return Response.success(
+        msg="获取会话详情成功",
+        data=GetSessionResponse(
+            session_id=session.id,
+            title=session.title,
+            status=session.status,
+            events=EventMapper.events_to_sse_events(session.events),
+        )
+    )

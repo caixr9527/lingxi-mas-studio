@@ -49,3 +49,7 @@ class SessionService:
         async with self._uow:
             await self._uow.session.delete_by_id(session_id=session_id)
         logger.info(f"删除任务会话成功: {session_id}")
+
+    async def get_session(self, session_id: str) -> Session:
+        async with self._uow:
+            return await self._uow.session.get_by_id(session_id=session_id)

@@ -10,7 +10,8 @@ from typing import List, Optional
 
 from pydantic import BaseModel, Field
 
-from app.domain.models import SessionStatus
+from app.domain.models import SessionStatus, File
+from app.interfaces.schemas import AgentSSEEvent
 
 
 class CreateSessionResponse(BaseModel):
@@ -39,3 +40,46 @@ class ChatRequest(BaseModel):
     attachments: Optional[List[str]] = Field(default_factory=list)  # 附件列表(传递的是文件id列表)
     event_id: Optional[str] = None  # 最新事件id
     timestamp: Optional[int] = None  # 当前时间戳
+
+
+class GetSessionResponse(BaseModel):
+    """获取会话详情响应结构"""
+    session_id: str
+    title: Optional[str] = None
+    status: SessionStatus
+    events: List[AgentSSEEvent] = Field(default_factory=list)
+
+
+class GetSessionFilesResponse(BaseModel):
+    """获取会话文件列表响应结构"""
+    files: List[File] = Field(default_factory=list)
+
+
+class FileReadRequest(BaseModel):
+    """需要读取的沙箱文件请求结构"""
+    filepath: str
+
+
+class FileReadResponse(BaseModel):
+    """需要读取的沙箱文件响应结构体"""
+    filepath: str
+    content: str
+
+
+class ShellReadRequest(BaseModel):
+    """需要读取的沙箱shell请求结构体"""
+    session_id: str  # Shell会话id
+
+
+class ConsoleRecord(BaseModel):
+    """控制台记录模型，包含ps1、command、output"""
+    ps1: str
+    command: str
+    output: str
+
+
+class ShellReadResponse(BaseModel):
+    """需要读取的沙箱shell响应结构体"""
+    session_id: str
+    output: str
+    console_records: List[ConsoleRecord] = Field(default_factory=list)
