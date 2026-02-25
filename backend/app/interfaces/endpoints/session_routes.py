@@ -21,7 +21,8 @@ from app.interfaces.schemas import (
     ListSessionItem,
     ChatRequest,
     EventMapper,
-    GetSessionResponse
+    GetSessionResponse,
+    GetSessionFilesResponse
 )
 from app.interfaces.schemas import Response
 from app.interfaces.service_dependencies import get_session_service, get_agent_service
@@ -193,7 +194,7 @@ async def get_session(
         session_service: SessionService = Depends(get_session_service),
 ) -> Response[GetSessionResponse]:
     """传递指定会话id获取该会话的对话详情"""
-    session = await session_service.get_session(session_id)
+    session = await session_service.get_session(session_id=session_id)
     if not session:
         raise NotFoundError("该会话不存在，请核实后重试")
     return Response.success(
@@ -204,4 +205,37 @@ async def get_session(
             status=session.status,
             events=EventMapper.events_to_sse_events(session.events),
         )
+    )
+
+
+@router.post(
+    path="/{session_id}/stop",
+    response_model=Response[Optional[Dict]],
+    summary="停止指定任务会话",
+    description="根据传递的指定会话id停止对应任务会话",
+)
+async def stop_session(
+        session_id: str,
+        agent_service: AgentService = Depends(get_agent_service),
+) -> Response[Optional[Dict]]:
+    """根据传递的指定会话id停止对应任务会话"""
+    await agent_service.stop_session(session_id=session_id)
+    return Response.success(msg="停止任务会话成功")
+
+
+@router.get(
+    path="/{session_id}/files",
+    response_model=Response[GetSessionFilesResponse],
+    summary="获取指定任务会话文件列表信息",
+    description="获取指定任务会话文件列表信息",
+)
+async def get_session_files(
+        session_id: str,
+        session_service: SessionService = Depends(get_session_service),
+) -> Response[GetSessionFilesResponse]:
+    """获取指定任务会话文件列表信息"""
+    files = await session_service.get_session_files(session_id=session_id)
+    return Response.success(
+        msg="获取会话文件列表成功",
+        data=GetSessionFilesResponse(files=files)
     )

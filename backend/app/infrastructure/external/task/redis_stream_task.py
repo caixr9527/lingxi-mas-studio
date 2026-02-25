@@ -53,6 +53,7 @@ class RedisStreamTask(Task):
             await self._task_runner.invoke(self)
         except asyncio.CancelledError:
             logger.info(f"取消执行任务: {self._id}")
+            raise
         except Exception as e:
             logger.error(f"执行任务失败: {self._id}, 错误信息: {e}")
         finally:

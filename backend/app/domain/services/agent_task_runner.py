@@ -418,6 +418,8 @@ class AgentTaskRunner(TaskRunner):
             await self._put_and_add_event(task=task, event=DoneEvent())
             async with self._uow:
                 await self._uow.session.update_status(session_id=self._session_id, status=SessionStatus.COMPLETED)
+            # 抛出异常
+            raise
         except Exception as e:
             # 处理其他异常情况
             logger.exception(f"AgentTaskRunner运行出错: {str(e)}")

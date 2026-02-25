@@ -205,3 +205,22 @@ class AgentService:
             # 确保最终重置未读消息计数
             async with self._uow:
                 await self._uow.session.update_unread_message_count(session_id=session_id, count=0)
+
+    async def stop_session(self, session_id: str) -> None:
+        # 获取指定会话的信息
+        async with self._uow:
+            session = await self._uow.session.get_by_id(session_id=session_id)
+        # 如果会话不存在，记录错误日志并抛出异常
+        if not session:
+            logger.error(f"会话{session_id}不存在")
+            raise RuntimeError(f"会话{session_id}不存在")
+
+        # 获取与会话关联的任务实例
+        task = await self._get_task(session)
+        # 如果任务存在，则取消该任务
+        if task:
+            task.cancel()
+
+        # 更新会话状态为已完成
+        async with self._uow:
+            await self._uow.session.update_status(session_id=session_id, status=SessionStatus.COMPLETED)

@@ -9,7 +9,7 @@ import logging
 from typing import List, Callable
 
 from app.application.errors import NotFoundError
-from app.domain.models import Session
+from app.domain.models import Session, File
 from app.domain.repositories import IUnitOfWork
 
 logger = logging.getLogger(__name__)
@@ -53,3 +53,12 @@ class SessionService:
     async def get_session(self, session_id: str) -> Session:
         async with self._uow:
             return await self._uow.session.get_by_id(session_id=session_id)
+
+    async def get_session_files(self, session_id: str) -> List[File]:
+        logger.info(f"获取任务会话文件列表: {session_id}")
+        async with self._uow:
+            session = await self._uow.session.get_by_id(session_id=session_id)
+        if not session:
+            logger.error(f"任务会话不存在: {session_id}")
+            raise RuntimeError(f"任务会话不存在: {session_id}")
+        return session.files
