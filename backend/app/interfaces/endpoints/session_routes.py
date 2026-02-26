@@ -22,7 +22,9 @@ from app.interfaces.schemas import (
     ChatRequest,
     EventMapper,
     GetSessionResponse,
-    GetSessionFilesResponse
+    GetSessionFilesResponse,
+    FileReadResponse,
+    FileReadRequest, ShellReadResponse, ShellReadRequest
 )
 from app.interfaces.schemas import Response
 from app.interfaces.service_dependencies import get_session_service, get_agent_service
@@ -238,4 +240,42 @@ async def get_session_files(
     return Response.success(
         msg="获取会话文件列表成功",
         data=GetSessionFilesResponse(files=files)
+    )
+
+
+@router.post(
+    path="/{session_id}/file",
+    response_model=Response[FileReadResponse],
+    summary="查看会话沙箱中指定文件的内容",
+    description="根据传递的会话id+文件路径查看沙箱中文件的内容信息"
+)
+async def read_file(
+        session_id: str,
+        request: FileReadRequest,
+        session_service: SessionService = Depends(get_session_service),
+) -> Response[FileReadResponse]:
+    """根据传递的会话id+文件路径查看沙箱中文件的内容信息"""
+    result = await session_service.read_file(session_id=session_id, filepath=request.filepath)
+    return Response.success(
+        msg="获取会话文件内容成功",
+        data=result
+    )
+
+
+@router.post(
+    path="/{session_id}/shell",
+    response_model=Response[ShellReadResponse],
+    summary="查看会话的shell内容输出",
+    description="传递指定会话id与shell会话标识，查看shell内容输出",
+)
+async def read_shell_output(
+        session_id: str,
+        request: ShellReadRequest,
+        session_service: SessionService = Depends(get_session_service),
+) -> Response[ShellReadResponse]:
+    """查看会话的shell内容输出"""
+    result = await session_service.read_shell_output(session_id=session_id, shell_session_id=request.session_id)
+    return Response.success(
+        msg="获取Shell内容输出结果成功",
+        data=result,
     )

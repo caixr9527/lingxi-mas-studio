@@ -70,7 +70,7 @@ def get_file_service(
 def get_session_service() -> SessionService:
     """获取会话服务"""
     logger.info("加载获取SessionService")
-    return SessionService(uow_factory=get_uow)
+    return SessionService(uow_factory=get_uow, sandbox_cls=DockerSandbox)
 
 
 def get_agent_service(
