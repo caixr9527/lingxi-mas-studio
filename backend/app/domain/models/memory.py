@@ -45,11 +45,18 @@ class Memory(BaseModel):
 
     def compact(self) -> None:
         """压缩记忆"""
+        # 遍历所有消息，进行记忆压缩处理
         for message in self.messages:
+            # 如果消息角色为"tool"，并且是浏览器相关工具调用，则清空其内容
             if self.get_message_role(message) == "tool":
                 if message.get("function_name") in ["browser_view", "browser_navigate"]:
-                    message["content"] = "(removed)"
+                    message["content"] = "(removed)"  # 将内容标记为已移除
                     logger.debug(f"从记忆中删除了工具调用结果: {message['function_name']}")
+
+            # 如果消息中包含推理内容，则将其移除以节省存储空间
+            if "reasoning_content" in message:
+                logger.debug(f"从记忆中移除工具思考结果: {message['reasoning_content'][:50]}...")  # 记录日志，仅显示前50个字符
+                del message["reasoning_content"]  # 删除推理内容字段
 
     @property
     def empty(self) -> bool:

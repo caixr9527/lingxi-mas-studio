@@ -325,17 +325,32 @@ class MCPClientManager:
             return ToolResult(success=False, message=f"调用MCP工具 {tool_name} 失败: {e}")
 
     async def cleanup(self) -> None:
+        """当退出MCP服务时，清除对应资源
+
+        该方法是幂等的，多次调用不会产生副作用。
+        注意：必须在初始化MCP的同一个asyncio Task中调用此方法，
+        否则anyio会因cancel scope上下文不匹配而抛出RuntimeError。
         """
-        清理MCP服务
-        """
+        # 幂等检查：如果未初始化则跳过清理
+        if not self._initialized:
+            return
+
         try:
             await self._exit_stack.aclose()
+            logger.info(f"清除MCP客户端管理器成功")
+        except RuntimeError as e:
+            # 防御性处理：anyio.create_task_group() 在不同任务中退出的已知问题
+            if "Attempted to exit cancel scope in a different task" in str(e):
+                logger.warning(f"清理MCP客户端管理器时遇到任务上下文切换警告（可忽略）: {str(e)}")
+            else:
+                logger.error(f"清理MCP客户端管理器失败: {str(e)}")
+        except Exception as e:
+            logger.error(f"清理MCP客户端管理器失败: {str(e)}")
+        finally:
+            # 无论aclose()是否成功，都必须清除缓存并重置状态
             self._clients.clear()
             self._tools.clear()
             self._initialized = False
-            logger.info("清理MCP服务成功")
-        except Exception as e:
-            logger.error(f"清理MCP服务失败: {e}")
 
 
 class MCPTool(BaseTool):

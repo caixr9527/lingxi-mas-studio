@@ -5,6 +5,7 @@
 @Author : caixiaorong01@outlook.com
 @File   : agent_service.py
 """
+import asyncio
 import logging
 from datetime import datetime
 from typing import AsyncGenerator, Optional, List, Type, Callable
@@ -110,6 +111,20 @@ class AgentService:
             await self._uow.session.save(session=session)
         return task
 
+    async def _safe_update_unread_count(self, session_id: str) -> None:
+        """在独立的后台任务中安全地更新未读消息计数
+
+        该方法通过asyncio.create_task()调用，运行在一个全新的asyncio Task中，
+        因此不受sse_starlette的anyio cancel scope影响，数据库操作可以正常完成。
+        使用uow_factory创建全新的UoW实例，避免与被取消的上下文共享数据库连接。
+        """
+        try:
+            uow = self._uow_factory()
+            async with uow:
+                await uow.session.update_unread_message_count(session_id, 0)
+        except Exception as e:
+            logger.warning(f"会话[{session_id}]后台更新未读消息计数失败: {e}")
+
     async def chat(
             self,
             session_id: str,
@@ -198,13 +213,26 @@ class AgentService:
             # 处理异常情况，记录错误日志并返回错误事件
             logger.error(f"会话{session_id}的聊天请求失败: {e}")
             event = ErrorEvent(error=str(e))
-            async with self._uow:
-                await self._uow.session.add_event(session_id, event)
+            try:
+                async with self._uow:
+                    await self._uow.session.add_event(session_id, event)
+            except (asyncio.CancelledError, Exception) as add_err:
+                logger.error(f"会话{session_id}的聊天请求失败,添加错误事件失败(可能是客户端断开连接): {add_err}")
             yield event
         finally:
             # 确保最终重置未读消息计数
-            async with self._uow:
-                await self._uow.session.update_unread_message_count(session_id=session_id, count=0)
+            # 会话完整传递给前端后，表示至少用户肯定收到了这些消息，所以不应该有未读消息数
+            # 注意：当SSE客户端断开连接时，sse_starlette使用anyio cancel scope取消当前Task中
+            # 所有的await操作（asyncio.shield也无法对抗anyio的cancel scope）。
+            # 如果在finally块中直接执行数据库操作，该操作会被立即取消，并且SQLAlchemy在尝试
+            # 终止被中断的连接时也会被取消，从而产生ERROR日志并可能污染连接池。
+            # 解决方案：将数据库更新操作放到独立的asyncio Task中执行，新Task不受当前
+            # cancel scope的影响，可以正常完成数据库操作。
+            try:
+                await asyncio.create_task(self._safe_update_unread_count(session_id))
+            except RuntimeError:
+                # 事件循环已关闭（如应用正在关闭），无法创建后台任务
+                logger.warning(f"会话[{session_id}]无法创建后台任务更新未读消息计数")
 
     async def stop_session(self, session_id: str) -> None:
         # 获取指定会话的信息
@@ -224,3 +252,9 @@ class AgentService:
         # 更新会话状态为已完成
         async with self._uow:
             await self._uow.session.update_status(session_id=session_id, status=SessionStatus.COMPLETED)
+
+    async def shutdown(self) -> None:
+        """关闭会话服务"""
+        logger.info("关闭会话服务并释放资源")
+        await self._task_cls.destroy()
+        logger.info("会话服务已关闭")

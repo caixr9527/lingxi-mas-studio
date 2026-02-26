@@ -41,6 +41,7 @@ class Postgres:
             self._engine = create_async_engine(
                 self._settings.sqlalchemy_database_uri,
                 echo=True if self._settings.env == "development" else False,
+                pool_pre_ping=True,  # 启用连接池预检，检查数据库连接是否正常
             )
 
             # 创建会话工厂
