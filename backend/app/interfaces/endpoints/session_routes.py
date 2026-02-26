@@ -10,8 +10,11 @@ import logging
 from datetime import datetime
 from typing import Optional, Dict, AsyncGenerator
 
+import websockets
 from fastapi import APIRouter, Depends
 from sse_starlette import EventSourceResponse, ServerSentEvent
+from starlette.websockets import WebSocket, WebSocketDisconnect
+from websockets import ConnectionClosed
 
 from app.application.errors import NotFoundError
 from app.application.service import SessionService, AgentService
@@ -24,7 +27,9 @@ from app.interfaces.schemas import (
     GetSessionResponse,
     GetSessionFilesResponse,
     FileReadResponse,
-    FileReadRequest, ShellReadResponse, ShellReadRequest
+    FileReadRequest,
+    ShellReadResponse,
+    ShellReadRequest
 )
 from app.interfaces.schemas import Response
 from app.interfaces.service_dependencies import get_session_service, get_agent_service
@@ -279,3 +284,88 @@ async def read_shell_output(
         msg="获取Shell内容输出结果成功",
         data=result,
     )
+
+
+@router.websocket(
+    path="/{session_id}/vnc",
+)
+async def vnc_websocket(
+        websocket: WebSocket,
+        session_id: str,
+        session_service: SessionService = Depends(get_session_service),
+) -> None:
+    """VNC Websocket端点，用于建立与沙箱环境的vnc连接，并双向转发数据"""
+    # 解析WebSocket子协议，支持binary和base64两种格式
+    protocols_str = websocket.headers.get("sec-websocket-protocol", "")
+    protocols = [p.strip() for p in protocols_str.split(",")]
+
+    # 根据客户端支持的协议选择合适的子协议
+    selected_protocol = None
+    if "binary" in protocols:
+        selected_protocol = "binary"
+    elif "base64" in protocols:
+        selected_protocol = "base64"
+
+    # 记录日志并接受WebSocket连接
+    logger.info(f"为会话[{session_id}]开启WebSocket连接")
+    await websocket.accept(subprotocol=selected_protocol)
+
+    try:
+        # 获取沙箱环境的VNC URL并建立连接
+        sandbox_vnc_url = await session_service.get_vnc_url(session_id=session_id)
+        logger.info(f"连接WebSocket VNC： {sandbox_vnc_url}")
+
+        # 建立到沙箱VNC服务器的WebSocket连接
+        async with websockets.connect(sandbox_vnc_url) as sandbox_ws:
+            
+            # 定义从客户端向沙箱转发数据的协程函数
+            async def forward_to_sandbox():
+                try:
+                    while True:
+                        # 接收客户端发送的二进制数据并转发到沙箱
+                        data = await websocket.receive_bytes()
+                        await sandbox_ws.send(data)
+                except WebSocketDisconnect:
+                    # 客户端断开连接时记录日志
+                    logger.info(f"Web->VNC连接终端")
+                except Exception as forward_e:
+                    # 处理转发过程中的异常
+                    logger.error(f"forward_to_sandbox出错: {str(forward_e)}")
+
+            # 定义从沙箱向客户端转发数据的协程函数
+            async def forward_from_sandbox():
+                try:
+                    while True:
+                        # 接收沙箱发送的数据并转发给客户端
+                        data = await sandbox_ws.recv()
+                        await websocket.send_bytes(data)
+                except ConnectionClosed:
+                    # 沙箱连接关闭时记录日志
+                    logger.info("VNC->Web连接关闭")
+                except Exception as forward_e:
+                    # 处理转发过程中的异常
+                    logger.error(f"forward_from_sandbox出错: {str(forward_e)}")
+
+            # 创建两个转发任务并等待其中任一任务完成
+            forward_task1 = asyncio.create_task(forward_to_sandbox())
+            forward_task2 = asyncio.create_task(forward_from_sandbox())
+
+            # 等待任一转发任务完成（通常意味着连接中断）
+            done, pending = await asyncio.wait(
+                [forward_task1, forward_task2],
+                return_when=asyncio.FIRST_COMPLETED,
+            )
+            logger.info("WebSocket连接已关闭")
+
+            # 取消仍在运行的任务
+            for task in pending:
+                task.cancel()
+                
+    except ConnectionError as connection_e:
+        # 处理连接沙箱环境失败的情况
+        logger.error(f"连接沙箱环境失败: {str(connection_e)}")
+        await websocket.close(code=1011, reason=f"连接沙箱环境失败: {str(connection_e)}")
+    except Exception as e:
+        # 处理其他WebSocket异常
+        logger.error(f"WebSocket异常: {str(e)}")
+        await websocket.close(code=1011, reason=f"WebSocket异常: {str(e)}")

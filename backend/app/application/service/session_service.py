@@ -115,3 +115,23 @@ class SessionService:
             # 读取成功，返回结果
             return ShellReadResponse(**result.data)
         raise ServerError(msg=result.msg)
+
+    async def get_vnc_url(self, session_id: str) -> str:
+        logger.info(f"获取会话：{session_id} 的VNC地址")
+        # 获取指定会话信息
+        async with self._uow:
+            session = await self._uow.session.get_by_id(session_id=session_id)
+        if not session:
+            logger.error(f"任务会话不存在: {session_id}")
+            raise RuntimeError(f"任务会话不存在: {session_id}")
+
+        # 检查会话是否关联了沙盒
+        if not session.sandbox_id:
+            raise NotFoundError(msg="任务会话未关联沙盒")
+
+        # 根据沙盒ID获取沙盒实例
+        sandbox = await self._sandbox_cls.get(id=session.sandbox_id)
+        if not sandbox:
+            raise NotFoundError(msg="任务会话未关联沙盒或已销毁")
+
+        return sandbox.vnc_url
