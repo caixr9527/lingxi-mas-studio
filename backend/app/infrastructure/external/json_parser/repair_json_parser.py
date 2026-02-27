@@ -25,4 +25,4 @@ class RepairJsonParser(JSONParser):
                 return default_value
             raise ValueError("输入文本为空")
 
-        return json_repair.repair_json(text, ensure_ascii=False)
+        return json_repair.repair_json(text, ensure_ascii=False, return_objects=True)

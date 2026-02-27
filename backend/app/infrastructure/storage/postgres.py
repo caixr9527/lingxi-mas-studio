@@ -12,6 +12,8 @@ from typing import Optional
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
 
+from app.domain.repositories import IUnitOfWork
+from app.infrastructure.repositories import DBUnitOfWork
 from core.config import get_settings
 
 logger = logging.getLogger(__name__)
@@ -39,6 +41,7 @@ class Postgres:
             self._engine = create_async_engine(
                 self._settings.sqlalchemy_database_uri,
                 echo=True if self._settings.env == "development" else False,
+                pool_pre_ping=True,  # 启用连接池预检，检查数据库连接是否正常
             )
 
             # 创建会话工厂
@@ -96,3 +99,13 @@ async def get_db_session() -> AsyncSession:
         except Exception as _:
             await session.rollback()
             raise
+
+
+def get_session_factory():
+    db = get_postgres()
+    session_factory = db.session_factory
+    return session_factory
+
+
+def get_uow() -> IUnitOfWork:
+    return DBUnitOfWork(session_factory=get_session_factory())

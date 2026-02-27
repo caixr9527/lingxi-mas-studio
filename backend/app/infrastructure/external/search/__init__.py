@@ -5,3 +5,6 @@
 @Author : caixiaorong01@outlook.com
 @File   : __init__.py.py
 """
+from .bing_search import BingSearchEngine
+
+__all__ = ["BingSearchEngine"]

@@ -8,9 +8,11 @@
 from .app_config_repository import AppConfigRepository
 from .file_repository import FileRepository
 from .session_repository import SessionRepository
+from .uow import IUnitOfWork
 
 __all__ = [
     "AppConfigRepository",
     "SessionRepository",
     "FileRepository",
+    "IUnitOfWork",
 ]

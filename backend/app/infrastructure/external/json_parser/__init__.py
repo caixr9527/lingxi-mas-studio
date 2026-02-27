@@ -5,3 +5,8 @@
 @Author : caixiaorong01@outlook.com
 @File   : __init__.py.py
 """
+from .repair_json_parser import RepairJsonParser
+
+__all__ = [
+    "RepairJsonParser",
+]

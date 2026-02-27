@@ -138,7 +138,7 @@ class RedisStreamMessageQueue(MessageQueue):
 
     async def is_empty(self) -> bool:
         """检查redis-stream是否为空"""
-        return self.size() == 0
+        return await self.size() == 0
 
     async def size(self) -> int:
         """获取redis-stream的长度"""

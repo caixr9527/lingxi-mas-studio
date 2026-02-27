@@ -53,6 +53,7 @@ class RedisStreamTask(Task):
             await self._task_runner.invoke(self)
         except asyncio.CancelledError:
             logger.info(f"取消执行任务: {self._id}")
+            raise
         except Exception as e:
             logger.error(f"执行任务失败: {self._id}, 错误信息: {e}")
         finally:
@@ -110,10 +111,14 @@ class RedisStreamTask(Task):
     @classmethod
     async def destroy(cls) -> None:
         """销毁任务"""
+        # 遍历所有注册的任务实例
         for task_id, task in RedisStreamTask._task_registry.items():
+            # 取消每个任务的执行
             task.cancel()
 
+            # 如果任务关联了任务运行器，则调用其销毁方法释放资源
             if task._task_runner:
                 await task._task_runner.destroy()
 
+        # 清空任务注册表，释放所有任务引用
         cls._task_registry.clear()

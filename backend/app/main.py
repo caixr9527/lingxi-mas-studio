@@ -5,6 +5,7 @@
 @Author : caixiaorong01@outlook.com
 @File   : main.py
 """
+import asyncio
 import logging
 from contextlib import asynccontextmanager
 
@@ -15,6 +16,7 @@ from app.infrastructure.logging import setup_logging
 from app.infrastructure.storage import get_redis_client, get_postgres, get_cos
 from app.interfaces.endpoints.routes import router
 from app.interfaces.errors.exception_handlers import register_exception_handlers
+from app.interfaces.service_dependencies import get_agent_service
 from core.config import get_settings
 
 settings = get_settings()
@@ -40,12 +42,25 @@ async def lifespan(app: FastAPI):
     await get_cos().init()
 
     try:
+        # lifespan分界点
         yield
     finally:
+        try:
+            # 等待agent服务关闭
+            logger.info("正在关闭Agent服务")
+            await asyncio.wait_for(get_agent_service().shutdown(), timeout=30.0)
+            logger.info("Agent服务成功关闭")
+        except asyncio.TimeoutError:
+            logger.warning("Agent服务关闭超时, 强制关闭, 部分任务将被释放")
+        except Exception as e:
+            logger.error(f"Agent服务关闭期间出现错误: {str(e)}")
+
+        # 关闭其他应用
         await get_redis_client().close()
         await get_postgres().close()
         await get_cos().close()
-        logger.info("停止服务")
+
+        logger.info("应用服务关闭成功")
 
 
 app = FastAPI(

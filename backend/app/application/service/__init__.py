@@ -5,12 +5,16 @@
 @Author : caixiaorong01@outlook.com
 @File   : __init__.py.py
 """
+from .agent_service import AgentService
 from .app_config_service import AppConfigService
 from .file_service import FileService
+from .session_service import SessionService
 from .status_service import StatusService
 
 __all__ = [
     "AppConfigService",
     "StatusService",
-    "FileService"
+    "FileService",
+    "SessionService",
+    "AgentService"
 ]
