@@ -9,6 +9,8 @@ import asyncio
 import logging
 from contextlib import asynccontextmanager
 
+from alembic import command
+from alembic.config import Config
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -36,6 +38,10 @@ openapi_tags = [
 async def lifespan(app: FastAPI):
     """生命周期上下文管理"""
     logger.info(f"{settings.env} 模式下启动服务")
+    # 运行数据库迁移
+    alembic_cfg = Config("alembic.ini")
+    command.upgrade(alembic_cfg, "head")
+
     # 初始化数据库连接
     await get_redis_client().init()
     await get_postgres().init()
