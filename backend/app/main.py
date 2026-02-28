@@ -37,6 +37,7 @@ openapi_tags = [
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """生命周期上下文管理"""
+    setup_logging()
     logger.info(f"{settings.env} 模式下启动服务")
     # 运行数据库迁移
     alembic_cfg = Config("alembic.ini")
