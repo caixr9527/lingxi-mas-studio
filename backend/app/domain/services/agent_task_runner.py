@@ -285,7 +285,7 @@ class AgentTaskRunner(TaskRunner):
                         # 从函数参数中获取文件路径
                         filepath = event.function_args["filepath"]
                         # 从沙箱中读取文件内容
-                        file_read_result = await self._sandbox.read_file(filepath)
+                        file_read_result = await self._sandbox.read_file(file_path=filepath)
                         file_content: str = (file_read_result.data or {}).get("content", "")
                         event.tool_content = FileToolContent(content=file_content)
                         # 将文件同步到沙存储
